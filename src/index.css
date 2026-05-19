@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/* ─── Variables de thème ───────────────────────────────────────────────────── */
+
+:root {
+  --bg-primary: #0f0a2e;
+  --bg-secondary: #1a1040;
+  --bg-card: #1e1555;
+  --accent: #7c3aed;
+  --accent2: #06b6d4;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: rgba(124, 58, 237, 0.3);
+  --gradient: radial-gradient(ellipse at top left, #2d1b69 0%, #0f0a2e 60%);
+}
+
+html.theme-colorful {
+  --bg-primary: #0c1445;
+  --bg-secondary: #111d5e;
+  --bg-card: #162272;
+  --accent: #f59e0b;
+  --accent2: #10b981;
+  --text-primary: #ffffff;
+  --text-secondary: #bfdbfe;
+  --border: rgba(245, 158, 11, 0.35);
+  --gradient: radial-gradient(ellipse at top right, #1a2a8f 0%, #0c1445 60%);
+}
+
+html.theme-light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: #ffffff;
+  --accent: #7c3aed;
+  --accent2: #0891b2;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border: rgba(124, 58, 237, 0.2);
+  --gradient: radial-gradient(ellipse at top, #e0e7ff 0%, #f8fafc 60%);
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  background-image: var(--gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Safe area (notch/barre de navigation mobile) ─────────────────────────── */
+
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 4rem); }
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── Animations ───────────────────────────────────────────────────────────── */
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce-in {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--accent); }
+  50%       { box-shadow: 0 0 20px var(--accent); }
+}
+
+.animate-slide-up  { animation: slide-up 0.3s ease both; }
+.animate-bounce-in { animation: bounce-in 0.35s ease both; }
+.animate-pulse-glow { animation: pulse-glow 2s ease infinite; }
+
+/* ─── Grille isométrique ───────────────────────────────────────────────────── */
+
+.grid-iso-cell {
+  aspect-ratio: 1;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.grid-iso-cell:hover {
+  transform: scale(1.1);
+  z-index: 10;
+}
+
+/* ─── Cards ────────────────────────────────────────────────────────────────── */
+
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+/* ─── Boutons ──────────────────────────────────────────────────────────────── */
+
+.btn-primary {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-ghost:hover { border-color: var(--accent); color: var(--text-primary); }
+
+/* ─── Badges pièces ────────────────────────────────────────────────────────── */
+
+.piece-blue        { background: #1d4ed8; }
+.piece-red         { background: #dc2626; }
+.piece-yellow      { background: #ca8a04; }
+.piece-green       { background: #16a34a; }
+.piece-orange      { background: #ea580c; }
+.piece-purple      { background: #7c3aed; }
+.piece-white       { background: #e2e8f0; color: #0f172a !important; }
+.piece-gray        { background: #475569; }
+.piece-transparent { background: rgba(148,163,184,0.2); border: 1px dashed #64748b; }
+.piece-mixed       { background: linear-gradient(135deg, #dc2626 33%, #1d4ed8 33%, #1d4ed8 66%, #16a34a 66%); }
+.piece-pink        { background: #db2777; }
+.piece-cyan        { background: #0891b2; }
