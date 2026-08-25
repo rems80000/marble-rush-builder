@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/marble-rush-builder/sw.js', { scope: '/marble-rush-builder/' })})}
