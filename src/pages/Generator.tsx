@@ -23,6 +23,8 @@ interface PieceRef { code: string; qty: number }
 interface StepTemplate {
   title: string; description: string; tips?: string; marbleTest?: boolean; pieces: PieceRef[]
   gridX?: number; gridY?: number; gridZ?: number
+  direction?: 'horizontal' | 'vertical' | 'stack' | 'branch-left' | 'branch-right'
+  rotation?: 0 | 90 | 180 | 270
 }
 
 interface PlanTemplate {
@@ -42,10 +44,10 @@ const PLAN_TEMPLATES: PlanTemplate[] = [
     stabilityRating: 5,
     stepTemplates: [
       { title: 'Base de départ', description: 'Placer 4 petites bases P-02 en carré 2×2 sur la table.', tips: 'Surface plane indispensable — vérifier avant de continuer.', pieces: [{ code: 'P-02', qty: 4 }], gridX: 3, gridY: 3, gridZ: 0 },
-      { title: 'Tour de départ (4× B-01)', description: 'Empiler 4 blocs courts B-01 au centre de la base.', tips: 'Vérifier la verticalité à chaque bloc.', pieces: [{ code: 'B-01', qty: 4 }], gridX: 3, gridY: 3, gridZ: 1 },
+      { title: 'Tour de départ (4× B-01)', description: 'Empiler 4 blocs courts B-01 au centre de la base.', tips: 'Vérifier la verticalité à chaque bloc.', pieces: [{ code: 'B-01', qty: 4 }], gridX: 3, gridY: 3, gridZ: 1, direction: 'stack' },
       { title: 'Stabilisation (2× B-03)', description: 'Placer 2 blocs longs B-03 de chaque côté de la tour comme contreforts.', pieces: [{ code: 'B-03', qty: 2 }], gridX: 2, gridY: 3, gridZ: 1 },
       { title: 'Lanceur T-01', description: 'Fixer le lanceur T-01 au sommet de la tour.', tips: 'Tester l\'angle de sortie avant de continuer.', marbleTest: true, pieces: [{ code: 'T-01', qty: 1 }], gridX: 3, gridY: 3, gridZ: 5 },
-      { title: '1ère descente (2× T-04)', description: 'Enchaîner 2 rails inclinés T-04 vers l\'avant. Chaque rail descend d\'un niveau.', pieces: [{ code: 'T-04', qty: 2 }], gridX: 3, gridY: 4, gridZ: 4 },
+      { title: '1ère descente (2× T-04)', description: 'Enchaîner 2 rails inclinés T-04 vers l\'avant. Chaque rail descend d\'un niveau.', pieces: [{ code: 'T-04', qty: 2 }], gridX: 3, gridY: 4, gridZ: 4, direction: 'branch-right', rotation: 90 },
       { title: 'Virage T-06', description: 'Ajouter un virage T-06 à 90° vers la droite.', pieces: [{ code: 'T-06', qty: 1 }], gridX: 3, gridY: 6, gridZ: 2 },
       { title: '2ème descente (2× T-08)', description: 'Enchaîner 2 rails plats T-08 après le virage.', pieces: [{ code: 'T-08', qty: 2 }], gridX: 4, gridY: 6, gridZ: 1 },
       { title: 'Arrivée T-27', description: 'Placer la pièce d\'arrivée T-27 à la fin. Le bac récupère les billes.', tips: 'Lancer 3 billes d\'affilée pour valider.', marbleTest: true, pieces: [{ code: 'T-27', qty: 1 }], gridX: 6, gridY: 6, gridZ: 0 },
@@ -60,9 +62,9 @@ const PLAN_TEMPLATES: PlanTemplate[] = [
     stabilityRating: 4,
     stepTemplates: [
       { title: 'Grande base (6× P-02)', description: 'Poser 6 petites bases P-02 en rectangle 3×2.', pieces: [{ code: 'P-02', qty: 6 }], gridX: 3, gridY: 3, gridZ: 0 },
-      { title: 'Tour centrale (6× B-01 + 2× B-03)', description: 'Empiler 6 blocs courts B-01 + 2 blocs longs B-03 pour la tour principale.', tips: 'Alterner les B-01 et B-03 pour plus de stabilité.', pieces: [{ code: 'B-01', qty: 6 }, { code: 'B-03', qty: 2 }], gridX: 3, gridY: 3, gridZ: 1 },
+      { title: 'Tour centrale (6× B-01 + 2× B-03)', description: 'Empiler 6 blocs courts B-01 + 2 blocs longs B-03 pour la tour principale.', tips: 'Alterner les B-01 et B-03 pour plus de stabilité.', pieces: [{ code: 'B-01', qty: 6 }, { code: 'B-03', qty: 2 }], gridX: 3, gridY: 3, gridZ: 1, direction: 'stack' },
       { title: 'Lanceur T-01', description: 'Fixer T-01 au sommet de la tour.', marbleTest: true, pieces: [{ code: 'T-01', qty: 1 }], gridX: 3, gridY: 3, gridZ: 9 },
-      { title: '1ère descente (3× T-04)', description: 'Enchaîner 3 rails inclinés T-04 depuis le lanceur.', pieces: [{ code: 'T-04', qty: 3 }], gridX: 3, gridY: 4, gridZ: 8 },
+      { title: '1ère descente (3× T-04)', description: 'Enchaîner 3 rails inclinés T-04 depuis le lanceur.', pieces: [{ code: 'T-04', qty: 3 }], gridX: 3, gridY: 4, gridZ: 8, direction: 'branch-right', rotation: 90 },
       { title: 'Aiguillage flipper T-10', description: 'Installer le flipper T-10 au bas de la descente. Il alternera automatiquement gauche/droite.', tips: 'Le flipper doit être à niveau — vérifier avec un rail à plat.', pieces: [{ code: 'T-10', qty: 1 }], gridX: 3, gridY: 7, gridZ: 5 },
       { title: 'Branche gauche (T-06 + 2× T-04 + T-08)', description: 'Branche gauche : virage T-06 + 2 rails inclinés T-04 + 1 rail plat T-08.', pieces: [{ code: 'T-06', qty: 1 }, { code: 'T-04', qty: 1 }, { code: 'T-08', qty: 1 }], gridX: 1, gridY: 7, gridZ: 4, marbleTest: true },
       { title: 'Branche droite (2× T-02 + T-08)', description: 'Branche droite : 2 rails droits courts T-02 + 1 rail plat T-08.', pieces: [{ code: 'T-02', qty: 2 }, { code: 'T-08', qty: 1 }], gridX: 5, gridY: 7, gridZ: 4 },
@@ -79,11 +81,11 @@ const PLAN_TEMPLATES: PlanTemplate[] = [
     stabilityRating: 3,
     stepTemplates: [
       { title: 'Grande base P-01 + socles P-02', description: 'Poser 1 grande base P-01 au centre + 6 petites P-02 autour pour agrandir la surface.', pieces: [{ code: 'P-01', qty: 1 }, { code: 'P-02', qty: 6 }], gridX: 4, gridY: 4, gridZ: 0 },
-      { title: 'Tour ascenseur (6× B-03 + 4× B-02)', description: 'Empiler 6 blocs longs B-03 + 4 blocs moyens B-02 pour la colonne de l\'ascenseur. Zone droite de la base.', tips: 'C\'est la colonne la plus haute — vérifier la verticalité à mi-hauteur.', pieces: [{ code: 'B-03', qty: 6 }, { code: 'B-02', qty: 4 }], gridX: 7, gridY: 4, gridZ: 1 },
+      { title: 'Tour ascenseur (6× B-03 + 4× B-02)', description: 'Empiler 6 blocs longs B-03 + 4 blocs moyens B-02 pour la colonne de l\'ascenseur. Zone droite de la base.', tips: 'C\'est la colonne la plus haute - vérifier la verticalité à mi-hauteur.', pieces: [{ code: 'B-03', qty: 6 }, { code: 'B-02', qty: 4 }], gridX: 7, gridY: 4, gridZ: 1, direction: 'stack' },
       { title: 'Module ascenseur M-03', description: 'Clipser le module ascenseur M-03 sur la colonne. Insérer les piles maintenant (avant de fermer).', tips: 'La nacelle doit monter librement. Tester sans bille d\'abord.', marbleTest: false, pieces: [{ code: 'M-03', qty: 1 }], gridX: 7, gridY: 4, gridZ: 2 },
-      { title: 'Tour de départ (8× B-01 + 4× B-05)', description: 'Construire la tour de départ centrale avec 8 B-01 + 4 blocs d\'angle B-05 pour la stabilité.', pieces: [{ code: 'B-01', qty: 8 }, { code: 'B-05', qty: 4 }], gridX: 4, gridY: 4, gridZ: 1 },
+      { title: 'Tour de départ (8× B-01 + 4× B-05)', description: 'Construire la tour de départ centrale avec 8 B-01 + 4 blocs d\'angle B-05 pour la stabilité.', pieces: [{ code: 'B-01', qty: 8 }, { code: 'B-05', qty: 4 }], gridX: 4, gridY: 4, gridZ: 1, direction: 'stack' },
       { title: 'Lanceur T-01 au sommet', description: 'Fixer T-01 au sommet de la tour de départ.', tips: 'Régler l\'angle pour que la bille parte vers la spirale.', marbleTest: true, pieces: [{ code: 'T-01', qty: 1 }], gridX: 4, gridY: 4, gridZ: 9 },
-      { title: 'Descente vers spirale (3× T-04)', description: '3 rails inclinés T-04 mènent vers la spirale T-17.', pieces: [{ code: 'T-04', qty: 3 }], gridX: 4, gridY: 5, gridZ: 8 },
+      { title: 'Descente vers spirale (3× T-04)', description: '3 rails inclinés T-04 mènent vers la spirale T-17.', pieces: [{ code: 'T-04', qty: 3 }], gridX: 4, gridY: 5, gridZ: 8, direction: 'branch-left', rotation: 90 },
       { title: 'Spirale T-17', description: 'Fixer la spirale T-17 sur ses supports. La bille doit descendre en 4 tours.', tips: 'Spirale parfaitement verticale — ajuster si la bille ralentit.', marbleTest: true, pieces: [{ code: 'T-17', qty: 1 }], gridX: 3, gridY: 6, gridZ: 3 },
       { title: 'Aiguillage flipper T-10', description: 'Après la spirale, le flipper T-10 répartit les billes sur 2 branches.', pieces: [{ code: 'T-10', qty: 1 }], gridX: 3, gridY: 8, gridZ: 1 },
       { title: 'Section train (T-26 + 3× T-24 + T-25)', description: 'Branche 1 : station T-26 + 3 rails droits T-24 + 1 courbe T-25. Poser le wagon M-04.', tips: 'Bien aligner tous les rails — le wagon doit glisser seul.', marbleTest: true, pieces: [{ code: 'T-26', qty: 1 }, { code: 'T-24', qty: 3 }, { code: 'T-25', qty: 1 }, { code: 'M-04', qty: 1 }], gridX: 0, gridY: 8, gridZ: 0 },
@@ -138,6 +140,36 @@ function resolveTemplate(
       }
     })
 
+    const anchorX = st.gridX ?? 0
+    const anchorY = st.gridY ?? 0
+    const anchorZ = st.gridZ ?? 0
+    const positions = resolvedPieces.flatMap((piece, pieceIndex) =>
+      Array.from({ length: piece.quantity }, (_, quantityIndex) => {
+        const offset = quantityIndex + pieceIndex
+        let x = anchorX
+        let y = anchorY
+        let z = anchorZ
+
+        switch (st.direction ?? 'horizontal') {
+          case 'vertical': y += offset; break
+          case 'stack': z += offset; break
+          case 'branch-left': x -= offset; y += offset; z = Math.max(0, z - offset); break
+          case 'branch-right': x += offset; y += offset; z = Math.max(0, z - offset); break
+          default: x += offset
+        }
+
+        return {
+          x: Math.max(0, x), y: Math.max(0, y), z: Math.max(0, z),
+          pieceId: `${piece.pieceId}-${steps.length}-${pieceIndex}-${quantityIndex}`,
+          pieceName: piece.pieceName,
+          pieceCode: piece.pieceCode,
+          color: piece.color,
+          emoji: piece.emoji,
+          rotation: st.rotation ?? 0,
+        }
+      }),
+    )
+
     steps.push({
       stepNumber: steps.length + 1,
       title: st.title,
@@ -145,12 +177,7 @@ function resolveTemplate(
       tips: st.tips,
       marbleTest: st.marbleTest,
       pieces: resolvedPieces,
-      gridPositions: st.gridX !== undefined ? [{
-        x: st.gridX, y: st.gridY!, z: st.gridZ!,
-        pieceId: resolvedPieces[0]?.pieceId ?? '',
-        color: resolvedPieces[0]?.color,
-        emoji: resolvedPieces[0]?.emoji,
-      }] : [],
+      gridPositions: st.gridX !== undefined ? positions : [],
     })
   }
 

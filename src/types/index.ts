@@ -96,6 +96,7 @@ export interface GridPosition {
   rotation?: 0 | 90 | 180 | 270
   color?: PieceColor
   emoji?: string
+  pieceCode?: string
 }
 
 export interface GridCell {
