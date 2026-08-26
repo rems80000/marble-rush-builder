@@ -10,6 +10,7 @@ import BuiltCircuits from './pages/BuiltCircuits'
 import Modules from './pages/Modules'
 import Settings from './pages/Settings'
 import ImageManager from './pages/ImageManager'
+import More from './pages/More'
 import CircuitBuilder from './pages/CircuitBuilder'
 
 function AppInner() {
@@ -26,6 +27,7 @@ function AppInner() {
           <Route path="/modules" element={<Modules />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/images" element={<ImageManager />} />
+          <Route path="/plus" element={<More />} />
           <Route path="/builder" element={<CircuitBuilder />} />
         </Routes>
       </main>

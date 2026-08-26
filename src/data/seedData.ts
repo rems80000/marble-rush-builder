@@ -1,90 +1,91 @@
 import type { MarbleSet, ModuleTemplate } from '../types'
+import { OWNED_ADDITIONAL_SETS } from './ownedSets'
+import { getNoticeCrop } from './noticeCrops'
 
 // ─── Vrai set – inventaire photo 2026-05-13 ───────────────────────────────────
 
 export const REAL_MARBLE_SET: MarbleSet = {
   id: 'set-real-train-elevator-2026',
-  name: 'Marble Rush Train / Elevator Set',
-  reference: 'inventaire photo 2026-05-13',
+  name: 'Super Sky Tower Set XL300E',
+  reference: '5999',
   year: 2022,
   owned: true,
   active: true,
   coverEmoji: '🚂',
+  coverImage: `${import.meta.env.BASE_URL}reference/collection-sets.jpg`,
+  advertisedPieceCount: 153,
+  inventoryStatus: 'verified-photo',
+  manualUrl: 'https://cdn-vtech-jouets.vtech.com/assets/d9982fea-0375-4e84-bfdf-ba05ecc5ce66/559905_IM_Marble%20Rush_Sky%20tower%20Set.pdf',
   ageMin: 5,
   ageMax: 12,
-  notes: 'Set principal — inventaire compté le 2026-05-13 sur photos',
+  notes: 'Inventaire vérifié sur la page COMPOSANTS fournie. La notice annonce 143 pièces de construction et 10 billes.',
   pieces: [
     // ── P : Bases ───────────────────────────────────────────────────────────
-    { id: 'real-P-01', setId: 'set-real-train-elevator-2026', name: 'Grande base plate', code: 'P-01', type: 'base', color: 'green', quantity: 2, emoji: '🟩', dimensions: { width: 6, height: 1, depth: 6 }, function: 'Grande plaque de départ pour circuits larges', connectors: ['top'], imageSource: 'missing' as const },
-    { id: 'real-P-02', setId: 'set-real-train-elevator-2026', name: 'Petite base support', code: 'P-02', type: 'base', color: 'green', quantity: 17, emoji: '🟩', dimensions: { width: 2, height: 1, depth: 2 }, function: 'Petite plaque support / jonction de sol', connectors: ['top'], imageSource: 'missing' as const },
+    { id: 'real-P-01', setId: 'set-real-train-elevator-2026', name: 'Grande plaque de base', code: 'P-01', type: 'base', color: 'white', quantity: 2, emoji: '▦', dimensions: { width: 6, height: 1, depth: 6 }, function: 'Grande plaque de départ pour circuits larges', connectors: ['top'], imageSource: 'asset' as const },
+    { id: 'real-P-02', setId: 'set-real-train-elevator-2026', name: 'Petite plaque de base', code: 'P-02', type: 'base', color: 'white', quantity: 17, emoji: '▦', dimensions: { width: 2, height: 1, depth: 2 }, function: 'Petite plaque support / jonction de sol', connectors: ['top'], imageSource: 'asset' as const },
 
     // ── B : Blocs supports ──────────────────────────────────────────────────
     { id: 'real-B-01', setId: 'set-real-train-elevator-2026', name: 'Bloc court', code: 'B-01', type: 'block', color: 'blue', quantity: 31, emoji: '🔵', dimensions: { width: 1, height: 1, depth: 1 }, function: 'Bloc de support de hauteur 1 unité', connectors: ['top', 'bottom'], imageSource: 'missing' as const },
-    { id: 'real-B-02', setId: 'set-real-train-elevator-2026', name: 'Bloc moyen', code: 'B-02', type: 'block', color: 'blue', quantity: 11, emoji: '🔵', dimensions: { width: 1, height: 2, depth: 1 }, function: 'Bloc de support de hauteur 2 unités', connectors: ['top', 'bottom'], imageSource: 'missing' as const },
+    { id: 'real-B-02', setId: 'set-real-train-elevator-2026', name: 'Bloc support orange', code: 'B-02', type: 'block', color: 'orange', quantity: 11, emoji: '🟠', dimensions: { width: 1, height: 2, depth: 1 }, function: 'Bloc de support orange', connectors: ['top', 'bottom'], imageSource: 'asset' as const },
     { id: 'real-B-03', setId: 'set-real-train-elevator-2026', name: 'Bloc long', code: 'B-03', type: 'block', color: 'gray', quantity: 23, emoji: '⬜', dimensions: { width: 1, height: 3, depth: 1 }, function: 'Bloc de support de hauteur 3 unités', connectors: ['top', 'bottom'], imageSource: 'missing' as const },
     { id: 'real-B-05', setId: 'set-real-train-elevator-2026', name: 'Bloc spécial angle', code: 'B-05', type: 'block', color: 'gray', quantity: 6, emoji: '🔲', dimensions: { width: 1, height: 1, depth: 2 }, function: 'Bloc d\'angle pour stabiliser les virages', connectors: ['top', 'bottom', 'front'], imageSource: 'missing' as const },
 
     // ── T : Pistes / Rails ──────────────────────────────────────────────────
-    { id: 'real-T-01', setId: 'set-real-train-elevator-2026', name: 'Pièce de départ', code: 'T-01', type: 'launcher', color: 'yellow', quantity: 1, emoji: '🚀', dimensions: { width: 1, height: 2, depth: 1 }, function: 'Lance la bille en tête de circuit', connectors: ['bottom', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-02', setId: 'set-real-train-elevator-2026', name: 'Rail droit court', code: 'T-02', type: 'rail-straight', color: 'blue', quantity: 4, emoji: '➖', dimensions: { width: 1, height: 0.5, depth: 1 }, function: 'Rail plat court — connexion entre modules', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-03', setId: 'set-real-train-elevator-2026', name: 'Rail droit long', code: 'T-03', type: 'rail-straight', color: 'blue', quantity: 1, emoji: '➖', dimensions: { width: 1, height: 0.5, depth: 3 }, function: 'Rail plat long', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-04', setId: 'set-real-train-elevator-2026', name: 'Rail incliné', code: 'T-04', type: 'rail-straight', color: 'blue', quantity: 5, emoji: '📐', dimensions: { width: 1, height: 1, depth: 2 }, function: 'Rail en pente pour faire descendre la bille', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-06', setId: 'set-real-train-elevator-2026', name: 'Virage 90°', code: 'T-06', type: 'rail-curved', color: 'blue', quantity: 4, emoji: '↪️', dimensions: { width: 2, height: 0.5, depth: 2 }, function: 'Change la direction de 90°', connectors: ['front', 'right'], imageSource: 'missing' as const },
-    { id: 'real-T-07', setId: 'set-real-train-elevator-2026', name: 'Tunnel / entonnoir', code: 'T-07', type: 'funnel', color: 'blue', quantity: 2, emoji: '🕳️', dimensions: { width: 1, height: 1, depth: 2 }, function: 'Guide la bille dans un tunnel', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-08', setId: 'set-real-train-elevator-2026', name: 'Rail plat long', code: 'T-08', type: 'rail-straight', color: 'blue', quantity: 5, emoji: '➖', dimensions: { width: 1, height: 0.5, depth: 2 }, function: 'Rail plat — section horizontale', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-10', setId: 'set-real-train-elevator-2026', name: 'Flipper / aiguillage', code: 'T-10', type: 'flipper', color: 'orange', quantity: 1, emoji: '🔀', dimensions: { width: 2, height: 1, depth: 1 }, function: 'Envoie les billes alternativement à gauche ou à droite', connectors: ['back', 'left', 'right'], imageSource: 'missing' as const },
-    { id: 'real-T-14', setId: 'set-real-train-elevator-2026', name: 'Jonction / connecteur', code: 'T-14', type: 'connector', color: 'gray', quantity: 3, emoji: '🔗', dimensions: { width: 1, height: 0.5, depth: 1 }, function: 'Connecte deux sections de rail', connectors: ['front', 'back', 'left', 'right'], imageSource: 'missing' as const },
-    { id: 'real-T-17', setId: 'set-real-train-elevator-2026', name: 'Spirale', code: 'T-17', type: 'spiral', color: 'purple', quantity: 2, emoji: '🌀', dimensions: { width: 2, height: 4, depth: 2 }, function: 'Fait descendre la bille en spirale — effet spectaculaire', connectors: ['top', 'bottom'], imageSource: 'missing' as const },
-    { id: 'real-T-23', setId: 'set-real-train-elevator-2026', name: 'Croisement de pistes', code: 'T-23', type: 'special', color: 'blue', quantity: 1, emoji: '✚', dimensions: { width: 2, height: 0.5, depth: 2 }, function: 'Croisement de deux pistes — les billes se croisent', connectors: ['front', 'back', 'left', 'right'], imageSource: 'missing' as const },
-    { id: 'real-T-24', setId: 'set-real-train-elevator-2026', name: 'Rail de train droit', code: 'T-24', type: 'train-track', color: 'gray', quantity: 4, emoji: '🛤️', dimensions: { width: 1, height: 0.5, depth: 3 }, function: 'Rail pour le wagon train — section droite', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-T-25', setId: 'set-real-train-elevator-2026', name: 'Rail de train courbe', code: 'T-25', type: 'train-track', color: 'gray', quantity: 2, emoji: '↪️', dimensions: { width: 3, height: 0.5, depth: 3 }, function: 'Rail courbe pour wagon train', connectors: ['front', 'right'], imageSource: 'missing' as const },
-    { id: 'real-T-26', setId: 'set-real-train-elevator-2026', name: 'Station départ train', code: 'T-26', type: 'launcher', color: 'yellow', quantity: 1, emoji: '🚉', dimensions: { width: 2, height: 1, depth: 2 }, function: 'Lance le wagon train sur les rails', connectors: ['back'], imageSource: 'missing' as const },
-    { id: 'real-T-27', setId: 'set-real-train-elevator-2026', name: 'Arrivée finale', code: 'T-27', type: 'funnel', color: 'red', quantity: 1, emoji: '🏁', dimensions: { width: 2, height: 1, depth: 2 }, function: 'Zone d\'arrivée — collecte les billes en fin de circuit', connectors: ['front'], imageSource: 'missing' as const },
+    { id: 'real-T-01', setId: 'set-real-train-elevator-2026', name: 'Grand virage jaune', code: 'T-01', type: 'rail-curved', color: 'yellow', quantity: 1, emoji: '↪', function: 'Grand rail courbe jaune', connectors: ['front', 'right'], imageSource: 'asset' as const },
+    { id: 'real-T-02', setId: 'set-real-train-elevator-2026', name: 'Grand virage jaune', code: 'T-02', type: 'rail-curved', color: 'yellow', quantity: 4, emoji: '↪', function: 'Grand rail courbe jaune', connectors: ['front', 'right'], imageSource: 'asset' as const },
+    { id: 'real-T-03', setId: 'set-real-train-elevator-2026', name: 'Petit virage orange', code: 'T-03', type: 'rail-curved', color: 'orange', quantity: 1, emoji: '↪', function: 'Petit rail courbe orange', connectors: ['front', 'right'], imageSource: 'asset' as const },
+    { id: 'real-T-04', setId: 'set-real-train-elevator-2026', name: 'Grand virage vert', code: 'T-04', type: 'rail-curved', color: 'green', quantity: 5, emoji: '↪', function: 'Grand rail courbe vert', connectors: ['front', 'right'], imageSource: 'asset' as const },
+    { id: 'real-T-06', setId: 'set-real-train-elevator-2026', name: 'Rail droit court bleu', code: 'T-06', type: 'rail-straight', color: 'blue', quantity: 4, emoji: '━', function: 'Relie deux éléments proches', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-07', setId: 'set-real-train-elevator-2026', name: 'Rail droit long bleu', code: 'T-07', type: 'rail-straight', color: 'blue', quantity: 2, emoji: '━', function: 'Relie deux éléments éloignés', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-08', setId: 'set-real-train-elevator-2026', name: 'Rail droit court rouge', code: 'T-08', type: 'rail-straight', color: 'red', quantity: 5, emoji: '━', function: 'Rail droit court rouge', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-10', setId: 'set-real-train-elevator-2026', name: 'Module tournant rouge', code: 'T-10', type: 'special', color: 'red', quantity: 1, emoji: '↻', function: 'Module circulaire de piste', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-14', setId: 'set-real-train-elevator-2026', name: 'Rampe bombée rouge', code: 'T-14', type: 'rail-straight', color: 'red', quantity: 3, emoji: '⌒', function: 'Rampe courbe courte', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-17', setId: 'set-real-train-elevator-2026', name: 'Virage spirale vert', code: 'T-17', type: 'spiral', color: 'green', quantity: 2, emoji: '🌀', function: 'Virage compact en spirale', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-23', setId: 'set-real-train-elevator-2026', name: 'Grand virage bleu', code: 'T-23', type: 'rail-curved', color: 'blue', quantity: 1, emoji: '↪', function: 'Grand rail courbe bleu', connectors: ['front', 'right'], imageSource: 'asset' as const },
+    { id: 'real-T-24', setId: 'set-real-train-elevator-2026', name: 'Rail de train courbe', code: 'T-24', type: 'train-track', color: 'gray', quantity: 4, emoji: '🛤️', function: 'Rail courbe pour le train', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-25', setId: 'set-real-train-elevator-2026', name: 'Rail de train droit court', code: 'T-25', type: 'train-track', color: 'gray', quantity: 2, emoji: '🛤️', function: 'Rail droit court pour le train', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-26', setId: 'set-real-train-elevator-2026', name: 'Rail de train droit long', code: 'T-26', type: 'train-track', color: 'gray', quantity: 1, emoji: '🛤️', function: 'Rail droit long pour le train', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-T-27', setId: 'set-real-train-elevator-2026', name: 'Virage de sortie bleu', code: 'T-27', type: 'rail-curved', color: 'blue', quantity: 1, emoji: '↪', function: 'Élément courbe de sortie', connectors: ['front', 'back'], imageSource: 'asset' as const },
 
     // ── M : Modules spéciaux / mécanismes ───────────────────────────────────
-    { id: 'real-M-03', setId: 'set-real-train-elevator-2026', name: 'Ascenseur motorisé', code: 'M-03', type: 'elevator', color: 'cyan', quantity: 1, emoji: '⬆️', dimensions: { width: 2, height: 6, depth: 2 }, function: 'Remonte automatiquement les billes au sommet (piles nécessaires)', connectors: ['top', 'bottom'], imageSource: 'missing' as const },
-    { id: 'real-M-04', setId: 'set-real-train-elevator-2026', name: 'Wagon train', code: 'M-04', type: 'train-car', color: 'red', quantity: 2, emoji: '🚃', dimensions: { width: 1, height: 1, depth: 3 }, function: 'Transporte les billes sur les rails de train', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-M-07', setId: 'set-real-train-elevator-2026', name: 'Canon propulseur', code: 'M-07', type: 'cannon', color: 'orange', quantity: 1, emoji: '💥', dimensions: { width: 1, height: 2, depth: 3 }, function: 'Propulse la bille vers le haut ou en avant', connectors: ['back', 'top'], imageSource: 'missing' as const },
-    { id: 'real-M-34', setId: 'set-real-train-elevator-2026', name: 'Module M-34', code: 'M-34', type: 'special', color: 'yellow', quantity: 1, emoji: '⚙️', function: 'Module spécial — voir notice', imageSource: 'missing' as const },
-    { id: 'real-M-35', setId: 'set-real-train-elevator-2026', name: 'Module M-35', code: 'M-35', type: 'special', color: 'yellow', quantity: 1, emoji: '⚙️', function: 'Module spécial — voir notice', imageSource: 'missing' as const },
-    { id: 'real-M-36', setId: 'set-real-train-elevator-2026', name: 'Module looping', code: 'M-36', type: 'special', color: 'purple', quantity: 1, emoji: '🔄', function: 'Looping / boucle verticale pour la bille', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-M-37', setId: 'set-real-train-elevator-2026', name: 'Décoration A', code: 'M-37', type: 'decoration', color: 'mixed', quantity: 1, emoji: '🌟', function: 'Élément décoratif — panneau ou figurine', imageSource: 'missing' as const },
-    { id: 'real-M-38', setId: 'set-real-train-elevator-2026', name: 'Décoration B', code: 'M-38', type: 'decoration', color: 'mixed', quantity: 1, emoji: '⭐', function: 'Élément décoratif — panneau ou figurine', imageSource: 'missing' as const },
-    { id: 'real-M-39', setId: 'set-real-train-elevator-2026', name: 'Décoration C', code: 'M-39', type: 'decoration', color: 'mixed', quantity: 1, emoji: '✨', function: 'Élément décoratif — panneau ou figurine', imageSource: 'missing' as const },
-    { id: 'real-M-40', setId: 'set-real-train-elevator-2026', name: 'Module pivot M-40/M-45', code: 'M-40', type: 'special', color: 'blue', quantity: 1, emoji: '🔀', function: 'Module pivotant — modifie la trajectoire de la bille', imageSource: 'missing' as const },
-    { id: 'real-M-41', setId: 'set-real-train-elevator-2026', name: 'Module M-41', code: 'M-41', type: 'special', color: 'green', quantity: 1, emoji: '⚙️', function: 'Module spécial — voir notice', imageSource: 'missing' as const },
-    { id: 'real-M-42', setId: 'set-real-train-elevator-2026', name: 'Tunnel court', code: 'M-42', type: 'funnel', color: 'blue', quantity: 1, emoji: '🕳️', function: 'Tunnel court — la bille disparaît et réapparaît', connectors: ['front', 'back'], imageSource: 'missing' as const },
-    { id: 'real-M-43', setId: 'set-real-train-elevator-2026', name: 'Module M-43', code: 'M-43', type: 'special', color: 'orange', quantity: 1, emoji: '⚙️', function: 'Module spécial — voir notice', imageSource: 'missing' as const },
-    { id: 'real-M-44', setId: 'set-real-train-elevator-2026', name: 'Module portail', code: 'M-44', type: 'decoration', color: 'white', quantity: 1, emoji: '🚪', function: 'Portail décoratif / arche d\'entrée du circuit', imageSource: 'missing' as const },
+    { id: 'real-M-03', setId: 'set-real-train-elevator-2026', name: 'Réceptacle orange', code: 'M-03', type: 'funnel', color: 'orange', quantity: 1, emoji: '◉', function: 'Réceptionne et redirige une bille', connectors: ['bottom'], imageSource: 'asset' as const },
+    { id: 'real-M-04', setId: 'set-real-train-elevator-2026', name: 'Support mécanique orange', code: 'M-04', type: 'special', color: 'orange', quantity: 2, emoji: '⚙', function: 'Support de mécanisme', connectors: ['top', 'bottom'], imageSource: 'asset' as const },
+    { id: 'real-M-07', setId: 'set-real-train-elevator-2026', name: 'Rampe de lancement jaune', code: 'M-07', type: 'launcher', color: 'yellow', quantity: 1, emoji: '⇢', function: 'Rampe de départ ou de relance', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-M-34', setId: 'set-real-train-elevator-2026', name: 'Support double bleu', code: 'M-34', type: 'special', color: 'blue', quantity: 1, emoji: '▣', function: 'Support de voie double', imageSource: 'asset' as const },
+    { id: 'real-M-35', setId: 'set-real-train-elevator-2026', name: 'Toit de gare', code: 'M-35', type: 'decoration', color: 'red', quantity: 1, emoji: '⌂', function: 'Élément de gare rouge et bleu', imageSource: 'asset' as const },
+    { id: 'real-M-36', setId: 'set-real-train-elevator-2026', name: 'Pont brun', code: 'M-36', type: 'special', color: 'gray', quantity: 1, emoji: '═', function: 'Plateforme de pont', connectors: ['front', 'back'], imageSource: 'asset' as const },
+    { id: 'real-M-37', setId: 'set-real-train-elevator-2026', name: 'Borne rouge', code: 'M-37', type: 'decoration', color: 'red', quantity: 1, emoji: '▮', function: 'Élément vertical décoratif', imageSource: 'asset' as const },
+    { id: 'real-M-38', setId: 'set-real-train-elevator-2026', name: 'Boîtier vert', code: 'M-38', type: 'special', color: 'green', quantity: 1, emoji: '▣', function: 'Boîtier de commande du train', imageSource: 'asset' as const },
+    { id: 'real-M-39', setId: 'set-real-train-elevator-2026', name: 'Train motorisé', code: 'M-39', type: 'train-car', color: 'green', quantity: 1, emoji: '🚄', function: 'Train motorisé Marble Rush', imageSource: 'asset' as const },
+    { id: 'real-M-40', setId: 'set-real-train-elevator-2026', name: 'Colonne d’ascenseur', code: 'M-40', type: 'elevator', color: 'gray', quantity: 1, emoji: '↥', function: 'Chaîne verticale de l’ascenseur', imageSource: 'asset' as const },
+    { id: 'real-M-45', setId: 'set-real-train-elevator-2026', name: 'Base bleue d’ascenseur', code: 'M-45', type: 'elevator', color: 'blue', quantity: 1, emoji: '▣', function: 'Base de fixation de la colonne M-40', imageSource: 'asset' as const },
+    { id: 'real-M-41', setId: 'set-real-train-elevator-2026', name: 'Décor arbres', code: 'M-41', type: 'decoration', color: 'green', quantity: 1, emoji: '🌳', function: 'Décor de végétation', imageSource: 'asset' as const },
+    { id: 'real-M-42', setId: 'set-real-train-elevator-2026', name: 'Pont de glace', code: 'M-42', type: 'decoration', color: 'cyan', quantity: 1, emoji: '♒', function: 'Décor de pont glacé', imageSource: 'asset' as const },
+    { id: 'real-M-43', setId: 'set-real-train-elevator-2026', name: 'Pont ferroviaire', code: 'M-43', type: 'decoration', color: 'green', quantity: 1, emoji: '🌉', function: 'Décor de pont pour le train', imageSource: 'asset' as const },
+    { id: 'real-M-44', setId: 'set-real-train-elevator-2026', name: 'Tour monument', code: 'M-44', type: 'decoration', color: 'gray', quantity: 1, emoji: '🗼', function: 'Monument décoratif', imageSource: 'asset' as const },
 
     // ── Billes ──────────────────────────────────────────────────────────────
     { id: 'real-MRB', setId: 'set-real-train-elevator-2026', name: 'Bille', code: 'MARBLE', type: 'marble', color: 'mixed', quantity: 10, emoji: '⚪', dimensions: { width: 0.3, height: 0.3, depth: 0.3 }, function: 'Bille de jeu standard', imageSource: 'missing' as const },
   ],
 }
 
+// Associe chaque référence du set 5999 à sa case exacte sur la photo fournie.
+REAL_MARBLE_SET.pieces.forEach((piece) => {
+  const notice = getNoticeCrop(piece.code, '5999')
+  piece.sourceSetIds = ['5999']
+  if (notice) {
+    piece.imageSource = 'asset'
+    piece.imageUrl = notice.imageUrl
+    piece.imageCrop = notice.crop
+    piece.imageAlt = `${piece.code} - extrait de la notice du set 5999`
+  }
+})
+
 // ─── Sets d'exemple (non possédés — catalogue de référence) ──────────────────
 
 export const SEED_SETS: MarbleSet[] = [
   REAL_MARBLE_SET,
-  {
-    id: 'set-example-starter',
-    name: 'Marble Rush Starter Pack (exemple)',
-    reference: '80-186000',
-    year: 2019,
-    owned: false,
-    active: false,
-    coverEmoji: '🎯',
-    ageMin: 4,
-    ageMax: 9,
-    notes: 'Exemple de set de référence — non possédé',
-    pieces: [
-      { id: 'ex-base-gr', setId: 'set-example-starter', name: 'Base verte', code: 'P-01', type: 'base', color: 'green', quantity: 1, emoji: '🟩', function: 'Base de départ' },
-      { id: 'ex-blk-bl', setId: 'set-example-starter', name: 'Bloc support', code: 'B-01', type: 'block', color: 'blue', quantity: 4, emoji: '🔵', function: 'Support de hauteur' },
-      { id: 'ex-rail-st', setId: 'set-example-starter', name: 'Rail droit', code: 'T-08', type: 'rail-straight', color: 'blue', quantity: 6, emoji: '➖', function: 'Rail plat' },
-      { id: 'ex-lch', setId: 'set-example-starter', name: 'Lanceur', code: 'T-01', type: 'launcher', color: 'yellow', quantity: 1, emoji: '🚀', function: 'Lance la bille' },
-      { id: 'ex-marble', setId: 'set-example-starter', name: 'Bille', code: 'MARBLE', type: 'marble', color: 'blue', quantity: 10, emoji: '🔵', function: 'Bille de jeu' },
-    ],
-  },
+  ...OWNED_ADDITIONAL_SETS,
 ]
 
 // ─── Modules réutilisables ────────────────────────────────────────────────────

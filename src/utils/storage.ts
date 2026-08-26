@@ -10,6 +10,42 @@ export function loadState(): AppState | null {
     const data = JSON.parse(raw) as AppState
     // Migration: inject layouts if missing (added in Phase 4)
     if (!data.layouts) data.layouts = []
+    // Migration collection 2026 : ajoute les sets photographiés sans écraser
+    // les corrections de quantités déjà faites par l'utilisateur.
+    const persistedById = new Map(data.sets.map((set) => [set.id, set]))
+    data.sets = SEED_SETS.map((seedSet) => {
+      const persisted = persistedById.get(seedSet.id)
+      if (!persisted) return seedSet
+      const persistedByCode = new Map(persisted.pieces.map((piece) => [piece.code, piece]))
+      const mergedPieces = seedSet.pieces.map((seedPiece) => {
+        const legacyCode = seedPiece.code === 'M-40' ? 'M-40/M-45' : seedPiece.code
+        const savedPiece = persistedByCode.get(seedPiece.code) ?? persistedByCode.get(legacyCode)
+        if (!savedPiece) return seedPiece
+        return {
+          ...savedPiece,
+          ...seedPiece,
+          id: savedPiece.id,
+          setId: savedPiece.setId,
+          quantity: savedPiece.quantity,
+          imageSource: savedPiece.imageSource === 'upload' ? savedPiece.imageSource : seedPiece.imageSource,
+          imageUrl: savedPiece.imageSource === 'upload' ? savedPiece.imageUrl : seedPiece.imageUrl,
+          imageCrop: savedPiece.imageSource === 'upload' ? savedPiece.imageCrop : seedPiece.imageCrop,
+        }
+      })
+      const knownCodes = new Set(seedSet.pieces.flatMap((piece) => piece.code === 'M-40' ? [piece.code, 'M-40/M-45'] : [piece.code]))
+      const customPieces = persisted.pieces.filter((piece) => !knownCodes.has(piece.code))
+      return {
+        ...seedSet,
+        ...persisted,
+        name: seedSet.name,
+        reference: seedSet.reference,
+        coverImage: seedSet.coverImage,
+        advertisedPieceCount: seedSet.advertisedPieceCount,
+        inventoryStatus: seedSet.inventoryStatus,
+        manualUrl: seedSet.manualUrl,
+        pieces: seedSet.pieces.length > 0 ? [...mergedPieces, ...customPieces] : persisted.pieces,
+      }
+    })
     return data
   } catch {
     return null

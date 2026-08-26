@@ -1,477 +1,173 @@
-import { useState, useMemo } from 'react'
-import { Sliders, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ArrowLeft, Check, CheckCircle2, ChevronDown, ChevronUp, PackageCheck, Sparkles, TriangleAlert } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import type {
-  CircuitPlan, BuildStep, GeneratorConstraints, Difficulty,
-  CircuitSize, CircuitPriority, MarblePiece, ValidationResult,
-} from '../types'
+import type { BuildStep, CircuitPlan, Difficulty, MarblePiece, PieceColor, ValidationResult } from '../types'
 import { generateId } from '../utils/storage'
 import StepByStepViewer from '../components/StepByStepViewer'
 import ValidationPanel from '../components/ValidationPanel'
-
-// ─── Labels UI ────────────────────────────────────────────────────────────────
-
-const DIFF_LABELS: Record<Difficulty, string> = { easy: '🟢 Facile', medium: '🟡 Moyen', hard: '🔴 Difficile' }
-const PRIORITY_LABELS: Record<CircuitPriority, string> = {
-  fun: '🎉 Fun', speed: '⚡ Vitesse', spiral: '🌀 Spirale',
-  train: '🚂 Train', elevator: '⬆️ Ascenseur', stability: '🏗️ Stabilité',
-}
-
-// ─── Logique de génération ────────────────────────────────────────────────────
+import PieceImage from '../components/PieceImage'
 
 interface PieceRef { code: string; qty: number }
-interface StepTemplate {
-  title: string; description: string; tips?: string; marbleTest?: boolean; pieces: PieceRef[]
-  gridX?: number; gridY?: number; gridZ?: number
+interface StepRecipe {
+  title: string
+  description: string
+  pieces: PieceRef[]
+  x: number
+  y: number
+  z: number
   direction?: 'horizontal' | 'vertical' | 'stack' | 'branch-left' | 'branch-right'
   rotation?: 0 | 90 | 180 | 270
+  tips?: string
+  marbleTest?: boolean
 }
 
-interface PlanTemplate {
+interface PlanRecipe {
   id: 'A' | 'B' | 'C'
-  name: string; difficulty: Difficulty; size: CircuitSize
-  estimatedTime: number; tags: CircuitPriority[]; description: string; stabilityRating: number
-  stepTemplates: StepTemplate[]
+  name: string
+  subtitle: string
+  difficulty: Difficulty
+  minutes: number
+  height: number
+  steps: StepRecipe[]
 }
 
-const PLAN_TEMPLATES: PlanTemplate[] = [
+const RECIPES: PlanRecipe[] = [
   {
-    id: 'A',
-    name: 'A. Mini circuit fiable',
-    difficulty: 'easy', size: 'small', estimatedTime: 15,
-    tags: ['fun', 'stability'],
-    description: 'Circuit simple et stable, idéal pour débuter ou pour les plus jeunes. Descente directe avec un virage.',
-    stabilityRating: 5,
-    stepTemplates: [
-      { title: 'Base de départ', description: 'Placer 4 petites bases P-02 en carré 2×2 sur la table.', tips: 'Surface plane indispensable — vérifier avant de continuer.', pieces: [{ code: 'P-02', qty: 4 }], gridX: 3, gridY: 3, gridZ: 0 },
-      { title: 'Tour de départ (4× B-01)', description: 'Empiler 4 blocs courts B-01 au centre de la base.', tips: 'Vérifier la verticalité à chaque bloc.', pieces: [{ code: 'B-01', qty: 4 }], gridX: 3, gridY: 3, gridZ: 1, direction: 'stack' },
-      { title: 'Stabilisation (2× B-03)', description: 'Placer 2 blocs longs B-03 de chaque côté de la tour comme contreforts.', pieces: [{ code: 'B-03', qty: 2 }], gridX: 2, gridY: 3, gridZ: 1 },
-      { title: 'Lanceur T-01', description: 'Fixer le lanceur T-01 au sommet de la tour.', tips: 'Tester l\'angle de sortie avant de continuer.', marbleTest: true, pieces: [{ code: 'T-01', qty: 1 }], gridX: 3, gridY: 3, gridZ: 5 },
-      { title: '1ère descente (2× T-04)', description: 'Enchaîner 2 rails inclinés T-04 vers l\'avant. Chaque rail descend d\'un niveau.', pieces: [{ code: 'T-04', qty: 2 }], gridX: 3, gridY: 4, gridZ: 4, direction: 'branch-right', rotation: 90 },
-      { title: 'Virage T-06', description: 'Ajouter un virage T-06 à 90° vers la droite.', pieces: [{ code: 'T-06', qty: 1 }], gridX: 3, gridY: 6, gridZ: 2 },
-      { title: '2ème descente (2× T-08)', description: 'Enchaîner 2 rails plats T-08 après le virage.', pieces: [{ code: 'T-08', qty: 2 }], gridX: 4, gridY: 6, gridZ: 1 },
-      { title: 'Arrivée T-27', description: 'Placer la pièce d\'arrivée T-27 à la fin. Le bac récupère les billes.', tips: 'Lancer 3 billes d\'affilée pour valider.', marbleTest: true, pieces: [{ code: 'T-27', qty: 1 }], gridX: 6, gridY: 6, gridZ: 0 },
+    id: 'A', name: 'Petit parcours stable', difficulty: 'easy', minutes: 15, height: 5,
+    subtitle: 'Une tour basse, une descente et de grands virages. Idéal pour commencer.',
+    steps: [
+      { title: 'Assembler la base', description: 'Pose la grande plaque P-01 bien à plat.', pieces: [{ code: 'P-01', qty: 1 }], x: 2, y: 2, z: 0, tips: 'Les quatre côtés de la plaque doivent toucher la table.' },
+      { title: 'Monter les premiers supports', description: 'Clipse quatre blocs B-01 au centre de la plaque.', pieces: [{ code: 'B-01', qty: 4 }], x: 2, y: 2, z: 1, direction: 'stack' },
+      { title: 'Renforcer la tour', description: 'Ajoute deux blocs B-02 de part et d’autre de la colonne.', pieces: [{ code: 'B-02', qty: 2 }], x: 1, y: 2, z: 1, tips: 'Appuie jusqu’au clic sans forcer.' },
+      { title: 'Installer la rampe de départ', description: 'Place M-07 en haut, orientée vers l’extérieur de la base.', pieces: [{ code: 'M-07', qty: 1 }], x: 2, y: 2, z: 5, rotation: 90, marbleTest: true },
+      { title: 'Créer la première descente', description: 'Raccorde deux rails droits courts T-06 en descendant.', pieces: [{ code: 'T-06', qty: 2 }], x: 2, y: 3, z: 4, direction: 'branch-right', rotation: 90 },
+      { title: 'Former le virage', description: 'Ajoute deux petits virages T-03 pour ramener la piste vers la base.', pieces: [{ code: 'T-03', qty: 2 }], x: 4, y: 5, z: 2, direction: 'branch-left', rotation: 180 },
+      { title: 'Terminer par le réceptacle', description: 'Place le réceptacle M-03 au bout du parcours.', pieces: [{ code: 'M-03', qty: 1 }], x: 3, y: 7, z: 0, tips: 'Ajuste le dernier rail pour viser le centre du réceptacle.', marbleTest: true },
     ],
   },
   {
-    id: 'B',
-    name: 'B. Circuit 2 pistes',
-    difficulty: 'medium', size: 'medium', estimatedTime: 30,
-    tags: ['fun', 'speed'],
-    description: 'Circuit à 2 branches avec aiguillage flipper. Les billes alternent entre la piste de gauche et la piste de droite.',
-    stabilityRating: 4,
-    stepTemplates: [
-      { title: 'Grande base (6× P-02)', description: 'Poser 6 petites bases P-02 en rectangle 3×2.', pieces: [{ code: 'P-02', qty: 6 }], gridX: 3, gridY: 3, gridZ: 0 },
-      { title: 'Tour centrale (6× B-01 + 2× B-03)', description: 'Empiler 6 blocs courts B-01 + 2 blocs longs B-03 pour la tour principale.', tips: 'Alterner les B-01 et B-03 pour plus de stabilité.', pieces: [{ code: 'B-01', qty: 6 }, { code: 'B-03', qty: 2 }], gridX: 3, gridY: 3, gridZ: 1, direction: 'stack' },
-      { title: 'Lanceur T-01', description: 'Fixer T-01 au sommet de la tour.', marbleTest: true, pieces: [{ code: 'T-01', qty: 1 }], gridX: 3, gridY: 3, gridZ: 9 },
-      { title: '1ère descente (3× T-04)', description: 'Enchaîner 3 rails inclinés T-04 depuis le lanceur.', pieces: [{ code: 'T-04', qty: 3 }], gridX: 3, gridY: 4, gridZ: 8, direction: 'branch-right', rotation: 90 },
-      { title: 'Aiguillage flipper T-10', description: 'Installer le flipper T-10 au bas de la descente. Il alternera automatiquement gauche/droite.', tips: 'Le flipper doit être à niveau — vérifier avec un rail à plat.', pieces: [{ code: 'T-10', qty: 1 }], gridX: 3, gridY: 7, gridZ: 5 },
-      { title: 'Branche gauche (T-06 + 2× T-04 + T-08)', description: 'Branche gauche : virage T-06 + 2 rails inclinés T-04 + 1 rail plat T-08.', pieces: [{ code: 'T-06', qty: 1 }, { code: 'T-04', qty: 1 }, { code: 'T-08', qty: 1 }], gridX: 1, gridY: 7, gridZ: 4, marbleTest: true },
-      { title: 'Branche droite (2× T-02 + T-08)', description: 'Branche droite : 2 rails droits courts T-02 + 1 rail plat T-08.', pieces: [{ code: 'T-02', qty: 2 }, { code: 'T-08', qty: 1 }], gridX: 5, gridY: 7, gridZ: 4 },
-      { title: 'Tunnel T-07 (optionnel)', description: 'Ajouter un tunnel T-07 sur la branche droite pour plus de spectacle.', pieces: [{ code: 'T-07', qty: 1 }], gridX: 6, gridY: 7, gridZ: 2 },
-      { title: 'Arrivée commune T-27', description: 'Les deux branches rejoignent l\'arrivée T-27. Ajuster les angles pour centrer.', tips: 'Lancer 5 billes d\'affilée — elles doivent alterner G/D.', marbleTest: true, pieces: [{ code: 'T-27', qty: 1 }], gridX: 3, gridY: 9, gridZ: 0 },
+    id: 'B', name: 'Parcours à deux branches', difficulty: 'medium', minutes: 30, height: 7,
+    subtitle: 'Deux chemins différents, avec une branche rapide et une branche spectacle.',
+    steps: [
+      { title: 'Relier les plaques', description: 'Assemble deux P-01 et quatre P-02 pour former une base en L.', pieces: [{ code: 'P-01', qty: 2 }, { code: 'P-02', qty: 4 }], x: 2, y: 2, z: 0 },
+      { title: 'Construire la tour centrale', description: 'Monte huit B-01 en deux colonnes de quatre.', pieces: [{ code: 'B-01', qty: 8 }], x: 3, y: 2, z: 1, direction: 'stack', tips: 'Compare la hauteur des deux colonnes avant de continuer.' },
+      { title: 'Ajouter les contreforts', description: 'Renforce la tour avec quatre B-02.', pieces: [{ code: 'B-02', qty: 4 }], x: 2, y: 2, z: 1 },
+      { title: 'Installer le module central', description: 'Clipse M-04 au sommet de la structure.', pieces: [{ code: 'M-04', qty: 1 }], x: 3, y: 2, z: 6, marbleTest: true },
+      { title: 'Construire la branche rapide', description: 'Place deux T-07 puis deux T-08 sur la droite.', pieces: [{ code: 'T-07', qty: 2 }, { code: 'T-08', qty: 2 }], x: 4, y: 3, z: 5, direction: 'branch-right', rotation: 90 },
+      { title: 'Construire la branche spectacle', description: 'Place deux grands virages T-01 puis deux virages T-04 sur la gauche.', pieces: [{ code: 'T-01', qty: 2 }, { code: 'T-04', qty: 2 }], x: 2, y: 3, z: 5, direction: 'branch-left', rotation: 270 },
+      { title: 'Rapprocher les deux sorties', description: 'Utilise deux petits virages T-03 pour diriger les branches vers le centre.', pieces: [{ code: 'T-03', qty: 2 }], x: 3, y: 7, z: 1 },
+      { title: 'Installer l’arrivée commune', description: 'Place M-03 au point de rencontre des deux branches.', pieces: [{ code: 'M-03', qty: 1 }], x: 4, y: 8, z: 0, tips: 'Teste d’abord chaque branche séparément, puis avec plusieurs billes.', marbleTest: true },
     ],
   },
   {
-    id: 'C',
-    name: 'C. Grand circuit Ascenseur + Train',
-    difficulty: 'hard', size: 'large', estimatedTime: 60,
-    tags: ['elevator', 'train', 'spiral', 'fun'],
-    description: 'Circuit complet avec ascenseur motorisé M-03, section train T-24, spirale T-17 et flipper. Circuit en boucle automatique.',
-    stabilityRating: 3,
-    stepTemplates: [
-      { title: 'Grande base P-01 + socles P-02', description: 'Poser 1 grande base P-01 au centre + 6 petites P-02 autour pour agrandir la surface.', pieces: [{ code: 'P-01', qty: 1 }, { code: 'P-02', qty: 6 }], gridX: 4, gridY: 4, gridZ: 0 },
-      { title: 'Tour ascenseur (6× B-03 + 4× B-02)', description: 'Empiler 6 blocs longs B-03 + 4 blocs moyens B-02 pour la colonne de l\'ascenseur. Zone droite de la base.', tips: 'C\'est la colonne la plus haute - vérifier la verticalité à mi-hauteur.', pieces: [{ code: 'B-03', qty: 6 }, { code: 'B-02', qty: 4 }], gridX: 7, gridY: 4, gridZ: 1, direction: 'stack' },
-      { title: 'Module ascenseur M-03', description: 'Clipser le module ascenseur M-03 sur la colonne. Insérer les piles maintenant (avant de fermer).', tips: 'La nacelle doit monter librement. Tester sans bille d\'abord.', marbleTest: false, pieces: [{ code: 'M-03', qty: 1 }], gridX: 7, gridY: 4, gridZ: 2 },
-      { title: 'Tour de départ (8× B-01 + 4× B-05)', description: 'Construire la tour de départ centrale avec 8 B-01 + 4 blocs d\'angle B-05 pour la stabilité.', pieces: [{ code: 'B-01', qty: 8 }, { code: 'B-05', qty: 4 }], gridX: 4, gridY: 4, gridZ: 1, direction: 'stack' },
-      { title: 'Lanceur T-01 au sommet', description: 'Fixer T-01 au sommet de la tour de départ.', tips: 'Régler l\'angle pour que la bille parte vers la spirale.', marbleTest: true, pieces: [{ code: 'T-01', qty: 1 }], gridX: 4, gridY: 4, gridZ: 9 },
-      { title: 'Descente vers spirale (3× T-04)', description: '3 rails inclinés T-04 mènent vers la spirale T-17.', pieces: [{ code: 'T-04', qty: 3 }], gridX: 4, gridY: 5, gridZ: 8, direction: 'branch-left', rotation: 90 },
-      { title: 'Spirale T-17', description: 'Fixer la spirale T-17 sur ses supports. La bille doit descendre en 4 tours.', tips: 'Spirale parfaitement verticale — ajuster si la bille ralentit.', marbleTest: true, pieces: [{ code: 'T-17', qty: 1 }], gridX: 3, gridY: 6, gridZ: 3 },
-      { title: 'Aiguillage flipper T-10', description: 'Après la spirale, le flipper T-10 répartit les billes sur 2 branches.', pieces: [{ code: 'T-10', qty: 1 }], gridX: 3, gridY: 8, gridZ: 1 },
-      { title: 'Section train (T-26 + 3× T-24 + T-25)', description: 'Branche 1 : station T-26 + 3 rails droits T-24 + 1 courbe T-25. Poser le wagon M-04.', tips: 'Bien aligner tous les rails — le wagon doit glisser seul.', marbleTest: true, pieces: [{ code: 'T-26', qty: 1 }, { code: 'T-24', qty: 3 }, { code: 'T-25', qty: 1 }, { code: 'M-04', qty: 1 }], gridX: 0, gridY: 8, gridZ: 0 },
-      { title: 'Branche 2 classique (T-06 + 2× T-08)', description: 'Branche 2 : virage T-06 + 2 rails plats T-08 + jonctions T-14.', pieces: [{ code: 'T-06', qty: 2 }, { code: 'T-08', qty: 2 }, { code: 'T-14', qty: 2 }], gridX: 5, gridY: 8, gridZ: 0 },
-      { title: 'Retour vers ascenseur (T-02 + T-06)', description: 'Les deux branches rejoignent un rail T-02 qui ramène les billes à l\'entrée de l\'ascenseur M-03.', tips: 'La bille doit entrer dans la nacelle de l\'ascenseur sans forcer.', pieces: [{ code: 'T-02', qty: 2 }, { code: 'T-06', qty: 1 }], gridX: 6, gridY: 9, gridZ: 0, marbleTest: true },
-      { title: 'Arrivée T-27 (sécurité)', description: 'Placer T-27 comme arrivée de secours si une bille rate l\'ascenseur.', pieces: [{ code: 'T-27', qty: 1 }], gridX: 4, gridY: 10, gridZ: 0, marbleTest: true, tips: 'Circuit en boucle prêt ! Mettre 5 billes en même temps pour le show.' },
+    id: 'C', name: 'Grand parcours train + ascenseur', difficulty: 'hard', minutes: 55, height: 10,
+    subtitle: 'Le circuit vedette du set 5999, avec train, voie ferrée et colonne d’ascenseur.',
+    steps: [
+      { title: 'Préparer la grande emprise', description: 'Relie deux P-01 et huit P-02 pour obtenir une base large.', pieces: [{ code: 'P-01', qty: 2 }, { code: 'P-02', qty: 8 }], x: 2, y: 2, z: 0 },
+      { title: 'Monter la colonne principale', description: 'Empile douze B-01 en colonnes régulières.', pieces: [{ code: 'B-01', qty: 12 }], x: 4, y: 2, z: 1, direction: 'stack', tips: 'Travaille par groupes de trois blocs et contrôle l’alignement.' },
+      { title: 'Stabiliser la hauteur', description: 'Ajoute huit B-03 autour de la colonne.', pieces: [{ code: 'B-03', qty: 8 }], x: 3, y: 2, z: 1 },
+      { title: 'Installer l’ascenseur', description: 'Fixe la colonne M-40 sur sa base bleue M-45, puis place l’ensemble contre la colonne principale.', pieces: [{ code: 'M-40', qty: 1 }, { code: 'M-45', qty: 1 }], x: 4, y: 2, z: 2, direction: 'vertical', tips: 'La chaîne doit rester droite et libre sur toute sa hauteur.' },
+      { title: 'Poser les rails du train', description: 'Forme une boucle avec quatre T-24, deux T-25 et un T-26.', pieces: [{ code: 'T-24', qty: 4 }, { code: 'T-25', qty: 2 }, { code: 'T-26', qty: 1 }], x: 1, y: 6, z: 0 },
+      { title: 'Ajouter le train', description: 'Pose le train M-39 sur la voie et vérifie qu’il circule librement.', pieces: [{ code: 'M-39', qty: 1 }], x: 3, y: 6, z: 1, marbleTest: true },
+      { title: 'Créer la descente haute', description: 'Raccorde trois grands virages T-04 et deux rails T-06.', pieces: [{ code: 'T-04', qty: 3 }, { code: 'T-06', qty: 2 }], x: 4, y: 3, z: 9, direction: 'branch-right', rotation: 90 },
+      { title: 'Installer le pont', description: 'Ajoute M-43 au-dessus de la voie ferrée.', pieces: [{ code: 'M-43', qty: 1 }], x: 5, y: 6, z: 4, tips: 'Laisse assez de passage pour le train sous le pont.' },
+      { title: 'Fermer le parcours', description: 'Place M-03 à la sortie basse de l’ascenseur.', pieces: [{ code: 'M-03', qty: 1 }], x: 6, y: 8, z: 0, tips: 'Teste une bille, puis le train, avant de lancer plusieurs billes.', marbleTest: true },
     ],
   },
 ]
 
-// ─── Résolution des pièces depuis l'inventaire ────────────────────────────────
+type AvailablePiece = MarblePiece & { available: number; setReference: string }
 
-function buildPieceMap(sets: ReturnType<typeof useStore>['state']['sets'], selectedSetIds: string[]) {
-  const map = new Map<string, MarblePiece & { available: number }>()
-  for (const set of sets) {
-    if (!set.owned || !set.active || !selectedSetIds.includes(set.id)) continue
-    for (const p of set.pieces) {
-      const existing = map.get(p.code)
-      if (existing) {
-        existing.available += p.quantity
-      } else {
-        map.set(p.code, { ...p, available: p.quantity })
-      }
-    }
-  }
-  return map
+function buildInventory(sets: ReturnType<typeof useStore>['state']['sets'], selectedIds: string[]) {
+  const result = new Map<string, AvailablePiece>()
+  sets.filter((set) => selectedIds.includes(set.id)).forEach((set) => set.pieces.forEach((piece) => {
+    const current = result.get(piece.code)
+    if (current) current.available += piece.quantity
+    else result.set(piece.code, { ...piece, available: piece.quantity, setReference: set.reference })
+  }))
+  return result
 }
 
-function resolveTemplate(
-  tpl: PlanTemplate,
-  pieceMap: Map<string, MarblePiece & { available: number }>,
-): CircuitPlan {
-  const steps: BuildStep[] = []
-  const used = new Map<string, number>() // code → qty used
-  let missingCodes: string[] = []
+function requestId(code: string | undefined, stepIndex: number, quantityIndex: number) {
+  return `${code ?? 'piece'}-${stepIndex}-${quantityIndex}`
+}
 
-  for (const st of tpl.stepTemplates) {
-    const resolvedPieces = st.pieces.map((ref) => {
-      const found = pieceMap.get(ref.code)
-      const alreadyUsed = used.get(ref.code) ?? 0
-      const available = (found?.available ?? 0) - alreadyUsed
-      const actualQty = Math.min(ref.qty, Math.max(0, available))
-      if (actualQty < ref.qty) missingCodes.push(`${ref.code} (besoin: ${ref.qty}, dispo: ${available})`)
-      used.set(ref.code, alreadyUsed + actualQty)
-      return {
-        pieceId: found?.id ?? ref.code,
-        pieceName: found ? `${found.code} — ${found.name}` : `${ref.code} (non trouvé)`,
-        pieceCode: ref.code,
-        quantity: ref.qty,
-        color: found?.color ?? 'gray',
-        emoji: found?.emoji ?? '🔷',
-      }
+function resolvePlan(recipe: PlanRecipe, inventory: Map<string, AvailablePiece>, selectedIds: string[]): CircuitPlan {
+  const used = new Map<string, number>()
+  const missing = new Map<string, number>()
+  const steps: BuildStep[] = recipe.steps.map((step, stepIndex) => {
+    const pieces = step.pieces.map((request) => {
+      const piece = inventory.get(request.code)
+      const previous = used.get(request.code) ?? 0
+      const available = piece?.available ?? 0
+      used.set(request.code, previous + request.qty)
+      if (previous + request.qty > available) missing.set(request.code, previous + request.qty - available)
+      return { pieceId: piece?.id ?? request.code, pieceCode: request.code, pieceName: piece?.name ?? `Pièce ${request.code}`, quantity: request.qty, color: (piece?.color ?? 'gray') as PieceColor, emoji: piece?.emoji }
     })
 
-    const anchorX = st.gridX ?? 0
-    const anchorY = st.gridY ?? 0
-    const anchorZ = st.gridZ ?? 0
-    const positions = resolvedPieces.flatMap((piece, pieceIndex) =>
-      Array.from({ length: piece.quantity }, (_, quantityIndex) => {
-        const offset = quantityIndex + pieceIndex
-        let x = anchorX
-        let y = anchorY
-        let z = anchorZ
+    const positions = pieces.flatMap((piece, pieceIndex) => Array.from({ length: piece.quantity }, (_, quantityIndex) => {
+      const offset = quantityIndex + pieceIndex
+      let x = step.x
+      let y = step.y
+      let z = step.z
+      if (step.direction === 'stack') z += offset
+      else if (step.direction === 'vertical') y += offset
+      else if (step.direction === 'branch-left') { x -= offset; y += offset; z = Math.max(0, z - offset) }
+      else if (step.direction === 'branch-right') { x += offset; y += offset; z = Math.max(0, z - offset) }
+      else x += offset
+      return { x: Math.max(0, x), y: Math.max(0, y), z, pieceId: requestId(piece.pieceCode, stepIndex, quantityIndex), pieceName: piece.pieceName, pieceCode: piece.pieceCode, color: piece.color, emoji: piece.emoji, rotation: step.rotation ?? 0 }
+    }))
+    return { stepNumber: stepIndex + 1, title: step.title, description: step.description, pieces, gridPositions: positions, tips: step.tips, marbleTest: step.marbleTest }
+  })
 
-        switch (st.direction ?? 'horizontal') {
-          case 'vertical': y += offset; break
-          case 'stack': z += offset; break
-          case 'branch-left': x -= offset; y += offset; z = Math.max(0, z - offset); break
-          case 'branch-right': x += offset; y += offset; z = Math.max(0, z - offset); break
-          default: x += offset
-        }
-
-        return {
-          x: Math.max(0, x), y: Math.max(0, y), z: Math.max(0, z),
-          pieceId: `${piece.pieceId}-${steps.length}-${pieceIndex}-${quantityIndex}`,
-          pieceName: piece.pieceName,
-          pieceCode: piece.pieceCode,
-          color: piece.color,
-          emoji: piece.emoji,
-          rotation: st.rotation ?? 0,
-        }
-      }),
-    )
-
-    steps.push({
-      stepNumber: steps.length + 1,
-      title: st.title,
-      description: st.description,
-      tips: st.tips,
-      marbleTest: st.marbleTest,
-      pieces: resolvedPieces,
-      gridPositions: st.gridX !== undefined ? positions : [],
-    })
-  }
-
-  // Pièces utilisées / restantes
-  const usedPiecesSummary: { code: string; used: number; total: number }[] = []
-  for (const [code, usedQty] of used.entries()) {
-    const total = pieceMap.get(code)?.available ?? 0
-    usedPiecesSummary.push({ code, used: usedQty, total })
-  }
-
-  // Validation
-  const hasMissing = missingCodes.length > 0
-  const hasArrival = tpl.stepTemplates.some((s) => s.pieces.some((p) => p.code === 'T-27'))
-  const totalBlocks = (used.get('B-01') ?? 0) + (used.get('B-02') ?? 0) + (used.get('B-03') ?? 0)
-  const totalRails = Array.from(used.entries())
-    .filter(([c]) => ['T-02', 'T-03', 'T-04', 'T-08'].includes(c))
-    .reduce((n, [, v]) => n + v, 0)
-  const lowSupport = totalRails > totalBlocks * 3
-
+  const supportCount = [...used.entries()].filter(([code]) => code.startsWith('B-')).reduce((sum, [, qty]) => sum + qty, 0)
+  const trackCount = [...used.entries()].filter(([code]) => code.startsWith('T-')).reduce((sum, [, qty]) => sum + qty, 0)
+  const missingText = [...missing.entries()].map(([code, qty]) => `${code} ×${qty}`)
   const validation: ValidationResult = {
-    isValid: !hasMissing && hasArrival,
-    score: hasMissing ? 40 : !hasArrival ? 55 : lowSupport ? 72 : 85 + tpl.stabilityRating * 3,
-    issues: [
-      ...(!hasArrival ? [{ type: 'no-arrival' as const, description: 'Aucune pièce d\'arrivée T-27 dans ce plan.' }] : []),
-      ...(hasMissing ? [{ type: 'missing-pieces' as const, description: `Pièces insuffisantes : ${[...new Set(missingCodes)].join(' | ')}` }] : []),
-    ],
-    warnings: [
-      ...(lowSupport ? [{ type: 'stability' as const, description: `Beaucoup de rails (${totalRails}) pour peu de blocs (${totalBlocks}) — risque d\'instabilité.` }] : []),
-    ],
+    isValid: missing.size === 0,
+    score: missing.size === 0 ? Math.max(78, 98 - recipe.height) : Math.max(25, 68 - missing.size * 8),
+    issues: missing.size > 0 ? [{ type: 'missing-pieces', description: `Pièces manquantes : ${missingText.join(', ')}` }] : [],
+    warnings: trackCount > supportCount * 2 ? [{ type: 'stability', description: 'Beaucoup de rails par rapport aux supports : renforcer les points hauts.' }] : [],
   }
-
-  return {
-    id: generateId(),
-    name: tpl.name,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    difficulty: tpl.difficulty,
-    size: tpl.size,
-    maxHeight: tpl.id === 'C' ? 12 : tpl.id === 'B' ? 8 : 5,
-    estimatedTime: tpl.estimatedTime,
-    steps,
-    gridData: [],
-    tags: tpl.tags,
-    isFavorite: false,
-    usedSetIds: [],
-    validationResult: validation,
-    notes: tpl.description,
-  }
+  return { id: generateId(), name: recipe.name, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), difficulty: recipe.difficulty, size: recipe.id === 'A' ? 'small' : recipe.id === 'B' ? 'medium' : 'large', maxHeight: recipe.height, estimatedTime: recipe.minutes, steps, gridData: [], notes: recipe.subtitle, tags: recipe.id === 'C' ? ['train', 'elevator', 'fun'] : recipe.id === 'B' ? ['fun', 'speed'] : ['stability'], isFavorite: false, usedSetIds: selectedIds, validationResult: validation }
 }
 
-// ─── Composant PlanCard ───────────────────────────────────────────────────────
-
-function PlanCard({
-  plan, onView, onSave, saved,
-}: {
-  plan: CircuitPlan
-  onView: () => void
-  onSave: () => void
-  saved: boolean
-}) {
+function PlanCard({ plan, inventory, onView, onSave, saved }: { plan: CircuitPlan; inventory: Map<string, AvailablePiece>; onView: () => void; onSave: () => void; saved: boolean }) {
   const [expanded, setExpanded] = useState(false)
-  const score = plan.validationResult?.score ?? 0
-  const scoreColor = score >= 80 ? '#10b981' : score >= 55 ? '#f59e0b' : '#ef4444'
-
-  return (
-    <div className="card p-4 animate-slide-up">
-      <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0"
-          style={{ background: scoreColor }}>{score}</div>
-        <div className="flex-1">
-          <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>{plan.name}</h3>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{plan.notes}</p>
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300">{DIFF_LABELS[plan.difficulty]}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-              {plan.steps.length} étapes · ~{plan.estimatedTime} min
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {plan.validationResult && (
-        <div className="mb-3">
-          <ValidationPanel result={plan.validationResult} />
-        </div>
-      )}
-
-      {/* Pièces clés utilisées */}
-      <button onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-xs w-full mb-3" style={{ color: 'var(--text-secondary)' }}>
-        {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        {expanded ? 'Masquer' : 'Voir'} les pièces utilisées ({plan.steps.flatMap(s => s.pieces).reduce((n, p) => n + p.quantity, 0)} pièces)
-      </button>
-      {expanded && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {plan.steps.flatMap(s => s.pieces).map((p, i) => (
-            <span key={i} className={`text-xs px-2 py-1 rounded-lg text-white piece-${p.color}`}>
-              {p.emoji} {p.pieceName.split('—')[0]?.trim()} ×{p.quantity}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <button onClick={onView}
-          className="flex-1 py-3 rounded-xl text-sm font-bold text-white"
-          style={{ background: 'var(--accent)' }}>
-          👁️ Voir les étapes
-        </button>
-        {!saved ? (
-          <button onClick={onSave}
-            className="flex-1 py-3 rounded-xl text-sm font-bold"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-            💾 Sauvegarder
-          </button>
-        ) : (
-          <div className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm text-emerald-400"
-            style={{ background: 'rgba(16,185,129,0.1)' }}>
-            <CheckCircle2 size={15} /> Sauvegardé
-          </div>
-        )}
-      </div>
+  const valid = plan.validationResult?.isValid ?? false
+  const usage = new Map<string, number>()
+  plan.steps.flatMap((step) => step.pieces).forEach((piece) => usage.set(piece.pieceCode ?? '', (usage.get(piece.pieceCode ?? '') ?? 0) + piece.quantity))
+  return <article className="card overflow-hidden">
+    <div className="p-4">
+      <div className="flex items-start gap-3"><span className={`flex h-11 w-11 items-center justify-center rounded-xl ${valid ? 'bg-emerald-500' : 'bg-amber-500'} text-lg font-black text-white`}>{plan.validationResult?.score}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-black" style={{ color: 'var(--text-primary)' }}>{plan.name}</h2><span className={`rounded-full px-2 py-1 text-[11px] font-black ${valid ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>{valid ? 'Constructible' : 'Pièces manquantes'}</span></div><p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{plan.notes}</p><p className="mt-2 text-xs font-bold text-violet-300">{plan.steps.length} étapes · environ {plan.estimatedTime} min · hauteur {plan.maxHeight}</p></div></div>
+      {plan.validationResult && !valid && <div className="mt-3"><ValidationPanel result={plan.validationResult} /></div>}
+      <button onClick={() => setExpanded((value) => !value)} className="mt-3 flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}><PackageCheck size={18} /> Pièces utilisées / disponibles {expanded ? <ChevronUp className="ml-auto" size={17} /> : <ChevronDown className="ml-auto" size={17} />}</button>
+      {expanded && <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{[...usage.entries()].filter(([code]) => code).map(([code, qty]) => { const piece = inventory.get(code); const enough = (piece?.available ?? 0) >= qty; return <div key={code} className="flex items-center gap-2 rounded-xl p-2" style={{ background: 'var(--bg-secondary)', border: `1px solid ${enough ? 'var(--border)' : '#f59e0b'}` }}><PieceImage code={code} color={piece?.color} size={42} setReference={piece?.setReference} /><span className="min-w-0"><span className="block text-xs font-black" style={{ color: 'var(--text-primary)' }}>{code}</span><span className={`block text-[11px] ${enough ? 'text-emerald-400' : 'text-amber-400'}`}>{qty} / {piece?.available ?? 0}</span></span></div> })}</div>}
     </div>
-  )
+    <div className="flex gap-2 border-t p-3" style={{ borderColor: 'var(--border)' }}><button onClick={onView} className="min-h-12 flex-1 rounded-xl bg-orange-500 px-3 text-sm font-black text-white">Voir la notice</button><button onClick={onSave} disabled={saved} className="min-h-12 flex-1 rounded-xl px-3 text-sm font-black disabled:opacity-60" style={{ background: 'var(--bg-secondary)', color: saved ? '#10b981' : 'var(--text-primary)' }}>{saved ? <span className="flex items-center justify-center gap-1"><Check size={17} /> Enregistré</span> : 'Enregistrer'}</button></div>
+  </article>
 }
-
-// ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Generator() {
   const { state, dispatch } = useStore()
-  const [step, setStep] = useState<'config' | 'results'>('config')
-  const [viewingPlan, setViewingPlan] = useState<CircuitPlan | null>(null)
+  const verifiedSets = state.sets.filter((set) => set.owned && set.inventoryStatus === 'verified-photo' && set.pieces.length > 0)
+  const pendingSets = state.sets.filter((set) => set.owned && set.inventoryStatus !== 'verified-photo')
+  const [selectedIds, setSelectedIds] = useState(() => verifiedSets.filter((set) => set.active).map((set) => set.id))
+  const [generated, setGenerated] = useState(false)
+  const [viewing, setViewing] = useState<CircuitPlan | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const inventory = useMemo(() => buildInventory(state.sets, selectedIds), [selectedIds, state.sets])
+  const plans = useMemo(() => RECIPES.map((recipe) => resolvePlan(recipe, inventory, selectedIds)).sort((a, b) => Number(b.validationResult?.isValid) - Number(a.validationResult?.isValid)), [inventory, selectedIds])
 
-  const activeSets = state.sets.filter((s) => s.owned && s.active)
+  if (viewing) return <div className="mx-auto max-w-5xl px-4 pb-24 pt-4"><button onClick={() => setViewing(null)} className="mb-4 flex min-h-11 items-center gap-2 text-sm font-bold" style={{ color: 'var(--text-secondary)' }}><ArrowLeft size={18} /> Les propositions</button><StepByStepViewer steps={viewing.steps} planName={viewing.name} /></div>
+  if (generated) return <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pb-24 pt-5"><div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Parcours proposés</h1><p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>Les parcours constructibles sont affichés en premier.</p></div><button onClick={() => setGenerated(false)} className="min-h-11 rounded-xl px-3 text-sm font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Modifier</button></div>{plans.map((plan) => <PlanCard key={plan.id} plan={plan} inventory={inventory} onView={() => setViewing(plan)} saved={savedIds.has(plan.id)} onSave={() => { dispatch({ type: 'ADD_PLAN', plan }); setSavedIds((current) => new Set(current).add(plan.id)) }} />)}</div>
 
-  const [constraints, setConstraints] = useState<GeneratorConstraints>({
-    difficulty: 'easy',
-    size: 'small',
-    maxHeight: 8,
-    maxTime: 30,
-    priorities: ['fun'],
-    childAge: state.settings.defaultChildAge,
-    selectedSetIds: activeSets.map((s) => s.id),
-  })
-
-  const plans = useMemo<CircuitPlan[]>(() => {
-    if (step !== 'results') return []
-    const pieceMap = buildPieceMap(state.sets, constraints.selectedSetIds)
-    return PLAN_TEMPLATES.map((tpl) => resolveTemplate(tpl, pieceMap))
-  }, [step, state.sets, constraints.selectedSetIds])
-
-  function togglePriority(p: CircuitPriority) {
-    setConstraints((c) => ({
-      ...c,
-      priorities: c.priorities.includes(p) ? c.priorities.filter((x) => x !== p) : [...c.priorities, p],
-    }))
-  }
-
-  function handleSave(plan: CircuitPlan) {
-    dispatch({ type: 'ADD_PLAN', plan })
-    setSavedIds((s) => new Set([...s, plan.id]))
-  }
-
-  // ── Vue étapes d'un plan ──────────────────────────────────────────────────
-
-  if (viewingPlan) {
-    return (
-      <div className="flex flex-col gap-4 pb-6 px-4">
-        <button onClick={() => setViewingPlan(null)} className="text-sm mt-5" style={{ color: 'var(--text-secondary)' }}>
-          ← Retour aux 3 plans
-        </button>
-        <StepByStepViewer steps={viewingPlan.steps} planName={viewingPlan.name} />
-      </div>
-    )
-  }
-
-  // ── 3 plans générés ───────────────────────────────────────────────────────
-
-  if (step === 'results') {
-    return (
-      <div className="flex flex-col gap-4 pb-6 px-4">
-        <div className="flex items-center justify-between pt-5">
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>3 circuits proposés ⚡</h1>
-          <button onClick={() => { setStep('config'); setSavedIds(new Set()) }}
-            className="text-sm px-3 py-2 rounded-xl" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-            ← Reconfigurer
-          </button>
-        </div>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Basé sur {constraints.selectedSetIds.length} set(s) sélectionné(s).
-        </p>
-        {plans.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            onView={() => setViewingPlan(plan)}
-            onSave={() => handleSave(plan)}
-            saved={savedIds.has(plan.id)}
-          />
-        ))}
-      </div>
-    )
-  }
-
-  // ── Formulaire de configuration ───────────────────────────────────────────
-
-  return (
-    <div className="flex flex-col gap-5 pb-6 px-4">
-      <div className="pt-5">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Générateur ⚡</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-          Configurez vos préférences — 3 plans seront proposés.
-        </p>
-      </div>
-
-      {/* Priorités */}
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: 'var(--text-secondary)' }}>
-          Priorités (plusieurs possibles)
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(PRIORITY_LABELS) as CircuitPriority[]).map((p) => (
-            <button key={p} onClick={() => togglePriority(p)}
-              className="px-3 py-2 rounded-full text-sm font-medium transition-all"
-              style={{
-                background: constraints.priorities.includes(p) ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: constraints.priorities.includes(p) ? 'white' : 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-              }}>
-              {PRIORITY_LABELS[p]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Âge */}
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: 'var(--text-secondary)' }}>
-          Âge de l'enfant (optionnel)
-        </label>
-        <div className="flex gap-2 flex-wrap">
-          {[undefined, 4, 5, 6, 7, 8, 10].map((age) => (
-            <button key={age ?? 'none'} onClick={() => setConstraints((c) => ({ ...c, childAge: age }))}
-              className="px-3 py-2 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background: constraints.childAge === age ? 'var(--accent2)' : 'var(--bg-secondary)',
-                color: constraints.childAge === age ? 'white' : 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-              }}>
-              {age ? `${age} ans` : 'Tous âges'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Sets */}
-      <div>
-        <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: 'var(--text-secondary)' }}>
-          Sets à utiliser ({constraints.selectedSetIds.length}/{activeSets.length})
-        </label>
-        {activeSets.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Aucun set actif — activez des sets dans «&nbsp;Mes Sets&nbsp;».</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {activeSets.map((s) => (
-              <button key={s.id}
-                onClick={() => setConstraints((c) => ({
-                  ...c,
-                  selectedSetIds: c.selectedSetIds.includes(s.id)
-                    ? c.selectedSetIds.filter((x) => x !== s.id)
-                    : [...c.selectedSetIds, s.id],
-                }))}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all"
-                style={{
-                  background: constraints.selectedSetIds.includes(s.id) ? 'rgba(124,58,237,0.2)' : 'var(--bg-secondary)',
-                  border: `1px solid ${constraints.selectedSetIds.includes(s.id) ? 'var(--accent)' : 'var(--border)'}`,
-                }}>
-                <span className="text-xl">{s.coverEmoji ?? '📦'}</span>
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{s.name}</span>
-                {constraints.selectedSetIds.includes(s.id) && <CheckCircle2 size={16} className="text-violet-400" />}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <button
-        onClick={() => setStep('results')}
-        disabled={constraints.selectedSetIds.length === 0}
-        className="w-full py-4 rounded-2xl font-bold text-lg text-white flex items-center justify-center gap-2 disabled:opacity-40"
-        style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent2))' }}>
-        <Sliders size={22} /> Générer les 3 plans !
-      </button>
-    </div>
-  )
+  const totalPieces = [...inventory.values()].reduce((sum, piece) => sum + piece.available, 0)
+  return <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 pb-24 pt-5">
+    <div><p className="text-xs font-black uppercase tracking-widest text-orange-400">Créer</p><h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Nouveau circuit</h1><p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>Choisis les sets posés devant toi. L’application vérifie chaque quantité avant de proposer une notice.</p></div>
+    <section><h2 className="mb-2 text-sm font-black" style={{ color: 'var(--text-primary)' }}>1. Sets disponibles</h2><div className="grid gap-2 sm:grid-cols-2">{verifiedSets.map((set) => { const selected = selectedIds.includes(set.id); return <button key={set.id} onClick={() => setSelectedIds((ids) => selected ? ids.filter((id) => id !== set.id) : [...ids, set.id])} className="flex min-h-16 items-center gap-3 rounded-2xl p-3 text-left" style={{ background: selected ? 'rgba(249,115,22,.13)' : 'var(--bg-secondary)', border: `2px solid ${selected ? '#f97316' : 'var(--border)'}` }}><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-black text-indigo-900">{set.reference}</span><span className="min-w-0 flex-1"><span className="block text-sm font-black" style={{ color: 'var(--text-primary)' }}>{set.name}</span><span className="block text-xs" style={{ color: 'var(--text-secondary)' }}>{set.pieces.reduce((sum, piece) => sum + piece.quantity, 0)} pièces relevées</span></span>{selected && <CheckCircle2 className="text-orange-500" size={21} />}</button> })}</div></section>
+    <section className="rounded-2xl p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}><div className="flex items-center justify-between"><div><h2 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>2. Inventaire utilisable</h2><p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{inventory.size} références · {totalPieces} pièces</p></div><PackageCheck className="text-emerald-400" size={27} /></div>{pendingSets.length > 0 && <div className="mt-3 flex gap-2 rounded-xl bg-amber-500/10 p-3 text-xs text-amber-300"><TriangleAlert className="flex-shrink-0" size={17} /><span>{pendingSets.length} sets possédés sont enregistrés mais exclus de la génération tant que leur page COMPOSANTS n’est pas relevée.</span></div>}</section>
+    <section><h2 className="mb-2 text-sm font-black" style={{ color: 'var(--text-primary)' }}>3. Générer les notices</h2><div className="grid grid-cols-3 gap-2">{RECIPES.map((recipe) => <div key={recipe.id} className="rounded-xl p-3 text-center" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}><p className="text-xl font-black text-orange-400">{recipe.id}</p><p className="mt-1 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{recipe.id === 'A' ? 'Petit' : recipe.id === 'B' ? '2 branches' : 'Train'}</p></div>)}</div></section>
+    <button disabled={selectedIds.length === 0} onClick={() => { setGenerated(true); setSavedIds(new Set()) }} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 text-base font-black text-white shadow-lg disabled:opacity-40"><Sparkles size={22} /> Proposer 3 parcours</button>
+  </div>
 }

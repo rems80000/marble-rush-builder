@@ -53,6 +53,9 @@ export interface MarblePiece {
   imageSource?: ImageSource
   imageAlt?: string
   imageCrop?: ImageCrop
+  sourceSetIds?: string[]
+  aliases?: string[]
+  notes?: string
 }
 
 // ─── Sets ─────────────────────────────────────────────────────────────────────
@@ -70,6 +73,10 @@ export interface MarbleSet {
   notes?: string
   ageMin?: number
   ageMax?: number
+  inventoryStatus?: 'verified-photo' | 'official-total' | 'needs-catalog'
+  advertisedPieceCount?: number
+  manualUrl?: string
+  coverCrop?: ImageCrop
 }
 
 // ─── Inventaire ───────────────────────────────────────────────────────────────

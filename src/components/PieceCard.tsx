@@ -34,7 +34,7 @@ export default function PieceCard({ piece, compact = false }: Props) {
         className="flex items-center gap-2 rounded-xl px-3 py-2"
         style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
       >
-        <PieceImage code={piece.code} color={piece.color} emoji={piece.emoji} size={32} alt={piece.name} />
+        <PieceImage code={piece.code} color={piece.color} emoji={piece.emoji} size={42} alt={piece.name} setReference={piece.sourceSetIds?.[0]} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
             {piece.name}
@@ -55,7 +55,7 @@ export default function PieceCard({ piece, compact = false }: Props) {
   return (
     <div className="card p-4 animate-slide-up">
       <div className="flex items-start gap-3">
-        <PieceImage code={piece.code} color={piece.color} emoji={piece.emoji} size={48} alt={piece.name} />
+        <PieceImage code={piece.code} color={piece.color} emoji={piece.emoji} size={56} alt={piece.name} setReference={piece.sourceSetIds?.[0]} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <h3 className="font-semibold text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>

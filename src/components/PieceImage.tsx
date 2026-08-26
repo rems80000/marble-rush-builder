@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react'
 import type { PieceColor } from '../types'
 import { getImageUrl } from '../services/imageDB'
 import { getPieceSVG } from './PieceSVG'
+import { getNoticeCrop } from '../data/noticeCrops'
+import NoticePieceImage from './NoticePieceImage'
 
 // ── colour → CSS var / hex mapping for the SVG fallback ──────────────────────
 const COLOR_BG: Record<PieceColor, string> = {
@@ -32,6 +34,7 @@ interface Props {
   /** Side length in px — the component renders a square */
   size?: number
   className?: string
+  setReference?: string
 }
 
 // ── async hook: try IndexedDB upload first, then public-asset URL ─────────────
@@ -125,7 +128,7 @@ function FallbackTile({ code, color = 'gray', emoji, size }: {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export default function PieceImage({ code, color, emoji, alt, size = 48, className }: Props) {
+export default function PieceImage({ code, color, emoji, alt, size = 48, className, setReference }: Props) {
   const url = usePieceImage(code)
   const [imgError, setImgError] = useState(false)
 
@@ -153,7 +156,21 @@ export default function PieceImage({ code, color, emoji, alt, size = 48, classNa
     )
   }
 
-  // 3. Dedicated SVG icon for the piece code
+  // 3. Recadrage fidèle de la case COMPOSANTS photographiée.
+  const noticeCrop = getNoticeCrop(code, setReference)
+  if (noticeCrop) {
+    return (
+      <NoticePieceImage
+        imageUrl={noticeCrop.imageUrl}
+        crop={noticeCrop.crop}
+        code={code}
+        size={size}
+        className={className}
+      />
+    )
+  }
+
+  // 4. Dedicated SVG icon for codes absent from the photographed notices.
   const SvgIcon = getPieceSVG(code)
   if (SvgIcon) {
     return (
@@ -176,7 +193,7 @@ export default function PieceImage({ code, color, emoji, alt, size = 48, classNa
     )
   }
 
-  // 4. Generic fallback tile (unknown codes)
+  // 5. Generic fallback tile (unknown codes)
   return (
     <FallbackTile
       code={code}

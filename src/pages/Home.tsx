@@ -1,145 +1,69 @@
 import { useNavigate } from 'react-router-dom'
-import { Package, Archive, Zap, BookOpen, Puzzle, Grid2x2 } from 'lucide-react'
+import { ArrowRight, BookOpen, CheckCircle2, Package, Sparkles } from 'lucide-react'
 import { useStore } from '../store/useStore'
-
-const QUICK_ACTIONS = [
-  { to: '/sets',       label: 'Mes sets',      Icon: Package,   color: '#7c3aed', desc: 'Gérer ma collection' },
-  { to: '/inventaire', label: 'Inventaire',    Icon: Archive,   color: '#0891b2', desc: 'Pièces disponibles' },
-  { to: '/generateur', label: 'Générer',       Icon: Zap,       color: '#f59e0b', desc: 'Créer un circuit' },
-  { to: '/builder',    label: 'Constructeur',  Icon: Grid2x2,   color: '#06b6d4', desc: 'Placer les pièces' },
-  { to: '/plans',      label: 'Mes plans',     Icon: BookOpen,  color: '#10b981', desc: 'Plans sauvegardés' },
-  { to: '/modules',    label: 'Modules',       Icon: Puzzle,    color: '#ec4899', desc: 'Modules réutilisables' },
-]
 
 export default function Home() {
   const navigate = useNavigate()
   const { state } = useStore()
-
-  const ownedSets = state.sets.filter((s) => s.owned)
-  const activeSets = state.sets.filter((s) => s.owned && s.active)
-  const totalPieces = activeSets.reduce(
-    (sum, s) => sum + s.pieces.reduce((ps, p) => ps + p.quantity, 0),
-    0,
-  )
+  const owned = state.sets.filter((set) => set.owned)
+  const active = owned.filter((set) => set.active)
+  const verified = owned.filter((set) => set.inventoryStatus === 'verified-photo')
+  const totalPieces = active.reduce((sum, set) => sum + set.pieces.reduce((pieceSum, piece) => pieceSum + piece.quantity, 0), 0)
 
   return (
-    <div className="flex flex-col gap-6 pb-6">
-      {/* Hero */}
-      <div
-        className="px-5 pt-10 pb-8 text-center"
-        style={{
-          background: 'linear-gradient(160deg, rgba(124,58,237,0.25) 0%, rgba(6,182,212,0.1) 100%)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <p className="text-5xl mb-3">🔮</p>
-        <h1 className="text-2xl font-extrabold mb-1" style={{ color: 'var(--text-primary)' }}>
-          Marble Rush Builder
-        </h1>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Gérez vos circuits VTech Marble Rush
-        </p>
+    <div className="mx-auto flex max-w-3xl flex-col gap-5 pb-24">
+      <section className="relative overflow-hidden px-5 pb-7 pt-8" style={{ background: 'linear-gradient(145deg,#312e81 0%,#5b21b6 60%,#7c3aed 100%)' }}>
+        <div className="relative z-10 max-w-lg text-white">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.2em] text-violet-200">Ma collection Marble Rush</p>
+          <h1 className="text-3xl font-black leading-tight">Construis un circuit avec tes vraies pièces</h1>
+          <p className="mt-2 text-sm leading-relaxed text-violet-100">Choisis tes sets, génère un plan compatible puis suis la notice étape par étape.</p>
+          <button onClick={() => navigate('/generateur')} className="mt-5 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-base font-black text-white shadow-lg sm:w-auto">
+            <Sparkles size={21} /> Créer un circuit <ArrowRight size={19} />
+          </button>
+        </div>
+        <div className="absolute -bottom-8 -right-8 text-[150px] opacity-10">🎢</div>
+      </section>
 
-        {/* Stats rapides */}
-        <div className="flex justify-center gap-6 mt-5">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-violet-400">{ownedSets.length}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>sets possédés</p>
-          </div>
-          <div className="w-px" style={{ background: 'var(--border)' }} />
-          <div className="text-center">
-            <p className="text-2xl font-bold text-cyan-400">{totalPieces}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>pièces actives</p>
-          </div>
-          <div className="w-px" style={{ background: 'var(--border)' }} />
-          <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-400">{state.plans.length}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>circuits créés</p>
+      <section className="px-4">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="card p-3 text-center"><p className="text-2xl font-black text-violet-400">{owned.length}</p><p className="text-xs" style={{ color: 'var(--text-secondary)' }}>sets possédés</p></div>
+          <div className="card p-3 text-center"><p className="text-2xl font-black text-cyan-400">{totalPieces}</p><p className="text-xs" style={{ color: 'var(--text-secondary)' }}>pièces vérifiées</p></div>
+          <div className="card p-3 text-center"><p className="text-2xl font-black text-emerald-400">{state.plans.length}</p><p className="text-xs" style={{ color: 'var(--text-secondary)' }}>plans sauvegardés</p></div>
+        </div>
+      </section>
+
+      <section className="px-4">
+        <div className="overflow-hidden rounded-2xl" style={{ border: '1px solid var(--border)' }}>
+          <img src={`${import.meta.env.BASE_URL}reference/collection-sets.jpg`} alt="Les huit notices Marble Rush de la collection" className="h-44 w-full object-cover object-center" />
+          <div className="flex items-center justify-between gap-3 p-3" style={{ background: 'var(--bg-secondary)' }}>
+            <div>
+              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Tes 8 sets sont enregistrés</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{verified.length} inventaires vérifiés sur photo · {owned.length - verified.length} notices à relever</p>
+            </div>
+            <button onClick={() => navigate('/sets')} className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-bold text-white" style={{ background: 'var(--accent)' }}>Voir <ArrowRight size={16} /></button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="px-4">
-        {/* Actions rapides */}
-        <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Actions rapides
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {QUICK_ACTIONS.map(({ to, label, Icon, color, desc }) => (
-            <button
-              key={to}
-              onClick={() => navigate(to)}
-              className="card p-4 text-left animate-slide-up hover:scale-[1.02] transition-transform active:scale-[0.98]"
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-2"
-                style={{ background: `${color}22` }}
-              >
-                <Icon size={20} style={{ color }} />
-              </div>
-              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{label}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{desc}</p>
-            </button>
-          ))}
+      <section className="px-4">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Continuer</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button onClick={() => navigate('/sets')} className="card flex min-h-20 items-center gap-3 p-4 text-left">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-400"><Package /></span>
+            <span><strong className="block text-sm" style={{ color: 'var(--text-primary)' }}>Vérifier mes sets</strong><span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Pièces et quantités par notice</span></span>
+          </button>
+          <button onClick={() => navigate('/plans')} className="card flex min-h-20 items-center gap-3 p-4 text-left">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400"><BookOpen /></span>
+            <span><strong className="block text-sm" style={{ color: 'var(--text-primary)' }}>Reprendre un plan</strong><span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Notice détaillée et progression</span></span>
+          </button>
         </div>
+      </section>
 
-        {/* Sets actifs */}
-        {activeSets.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Sets actifs dans l'inventaire
-            </h2>
-            <div className="flex flex-col gap-2">
-              {activeSets.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                >
-                  <span className="text-2xl">{s.coverEmoji ?? '📦'}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{s.name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {s.pieces.reduce((n, p) => n + p.quantity, 0)} pièces
-                    </p>
-                  </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                    Actif
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Plans récents */}
-        {state.plans.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Plans récents
-            </h2>
-            <div className="flex flex-col gap-2">
-              {state.plans.slice(0, 3).map((plan) => (
-                <button
-                  key={plan.id}
-                  onClick={() => navigate('/plans')}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-left w-full"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                >
-                  <span className="text-xl">📐</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{plan.name}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {plan.steps.length} étapes · {plan.difficulty}
-                    </p>
-                  </div>
-                  {plan.isFavorite && <span>⭐</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      {active.length !== owned.length && (
+        <div className="mx-4 flex items-center gap-2 rounded-xl p-3 text-xs" style={{ background: 'rgba(245,158,11,.12)', color: 'var(--text-secondary)' }}>
+          <CheckCircle2 size={17} className="text-amber-400" /> {active.length} set(s) actif(s) sur {owned.length} pour la génération.
+        </div>
+      )}
     </div>
   )
 }
