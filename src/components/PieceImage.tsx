@@ -35,6 +35,7 @@ interface Props {
   size?: number
   className?: string
   setReference?: string
+  variant?: 'tile' | 'cutout'
 }
 
 // ── async hook: try IndexedDB upload first, then public-asset URL ─────────────
@@ -128,7 +129,7 @@ function FallbackTile({ code, color = 'gray', emoji, size }: {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export default function PieceImage({ code, color, emoji, alt, size = 48, className, setReference }: Props) {
+export default function PieceImage({ code, color, emoji, alt, size = 48, className, setReference, variant = 'tile' }: Props) {
   const url = usePieceImage(code)
   const [imgError, setImgError] = useState(false)
 
@@ -147,10 +148,11 @@ export default function PieceImage({ code, color, emoji, alt, size = 48, classNa
         style={{
           width: size,
           height: size,
-          objectFit: 'cover',
-          borderRadius: Math.round(size * 0.18),
+          objectFit: variant === 'cutout' ? 'contain' : 'cover',
+          borderRadius: variant === 'cutout' ? 0 : Math.round(size * 0.18),
           flexShrink: 0,
           display: 'block',
+          filter: variant === 'cutout' ? 'drop-shadow(0 8px 6px rgba(15,23,42,.28))' : undefined,
         }}
       />
     )
@@ -166,6 +168,7 @@ export default function PieceImage({ code, color, emoji, alt, size = 48, classNa
         code={code}
         size={size}
         className={className}
+        variant={variant}
       />
     )
   }
@@ -183,7 +186,7 @@ export default function PieceImage({ code, color, emoji, alt, size = 48, classNa
           justifyContent: 'center',
           width: size,
           height: size,
-          borderRadius: Math.round(size * 0.18),
+          borderRadius: variant === 'cutout' ? 0 : Math.round(size * 0.18),
           flexShrink: 0,
           overflow: 'hidden',
         }}
