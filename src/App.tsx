@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { StoreContext, useStoreReducer } from './store/useStore'
 import Navigation from './components/Navigation'
 import Home from './pages/Home'
@@ -40,9 +40,9 @@ export default function App() {
   const store = useStoreReducer()
   return (
     <StoreContext.Provider value={store}>
-      <BrowserRouter basename="/marble-rush-builder">
+      <HashRouter>
         <AppInner />
-      </BrowserRouter>
+      </HashRouter>
     </StoreContext.Provider>
   )
 }
