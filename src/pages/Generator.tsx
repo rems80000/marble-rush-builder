@@ -180,20 +180,20 @@ function makeRecipes(selectedFeatures: SelectedFeature[]) {
   const compact = units.slice(0, 1)
   const medium = units.slice(0, Math.min(2, units.length))
   const large = units.slice(0, Math.min(6, units.length))
-  return [
+  const compactPlan =
     makeRecipe('A', compact, {
       name: compact[0] ? `Circuit compact avec ${featureLabel(compact[0])}` : 'Circuit compact',
       subtitle: 'Une attraction principale, une structure basse et une descente fiable.', difficulty: 'easy', minutes: 15, height: 5, supports: 5, bases: 1,
-    }),
-    makeRecipe('B', medium, {
+    })
+  const mediumPlan = makeRecipe('B', medium, {
       name: medium.length > 1 ? 'Circuit duo d’attractions' : 'Circuit moyen',
       subtitle: 'Deux zones de jeu reliées par une pente régulière.', difficulty: 'medium', minutes: 30, height: 7, supports: 9, bases: 2,
-    }),
-    makeRecipe('C', large, {
+    })
+  const completePlan = makeRecipe('C', large, {
       name: large.length > 2 ? 'Grand circuit spectacle' : 'Grand circuit évolutif',
       subtitle: 'Le parcours le plus complet possible avec les attractions sélectionnées.', difficulty: 'hard', minutes: 50, height: 10, supports: 14, bases: 3,
-    }),
-  ]
+    })
+  return [completePlan, mediumPlan, compactPlan]
 }
 
 function buildGenerationInventory(fullInventory: Map<string, AvailablePiece>, selectedFeatures: SelectedFeature[]) {
@@ -229,7 +229,7 @@ function resolvePlan(recipe: PlanRecipe, inventory: Map<string, AvailablePiece>,
       return {
         pieceId: piece?.id ?? request.code,
         pieceCode: request.code,
-        pieceName: piece?.name ?? `Pièce ${request.code}`,
+        pieceName: request.piece ? featureLabel(request.piece) : piece?.name ?? `Pièce ${request.code}`,
         quantity: request.qty,
         color: (piece?.color ?? 'gray') as PieceColor,
         emoji: piece?.emoji,
