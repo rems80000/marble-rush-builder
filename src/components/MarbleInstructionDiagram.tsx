@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDown, Layers3, Minus, Plus, RotateCw } from 'lucide-react'
+import { ArrowDown, Minus, Plus, RotateCw } from 'lucide-react'
 import type { BuildStep, GridPosition } from '../types'
 import PieceImage from './PieceImage'
 
@@ -22,7 +22,7 @@ interface ScenePoint {
 
 const CELL_X = 58
 const CELL_Y = 29
-const HEIGHT_UNIT = 34
+const HEIGHT_UNIT = 22
 
 function rotateGrid(x: number, y: number, quarterTurns: number) {
   if (quarterTurns === 1) return { x: y, y: -x }
@@ -31,14 +31,65 @@ function rotateGrid(x: number, y: number, quarterTurns: number) {
   return { x, y }
 }
 
-function visualSize(code: string, current: boolean) {
-  let size = 66
-  if (code.startsWith('P-')) size = 94
-  else if (code.startsWith('B-')) size = 58
-  else if (code.startsWith('T-')) size = 76
-  else if (code === 'M-40' || code === 'M-45') size = 94
-  else if (code.startsWith('M-')) size = 82
-  return current ? Math.round(size * 1.08) : size
+function visualSize(code: string) {
+  if (code.startsWith('P-')) return 92
+  if (code.startsWith('B-')) return 59
+  if (code.startsWith('T-')) return 76
+  if (code === 'M-40' || code === 'M-45') return 94
+  if (code.startsWith('M-')) return 82
+  return 64
+}
+
+function PositionMiniMap({ positions }: { positions: RenderedPosition[] }) {
+  const minX = Math.min(0, ...positions.map((position) => position.x))
+  const minY = Math.min(0, ...positions.map((position) => position.y))
+  const maxX = Math.max(7, ...positions.map((position) => position.x))
+  const maxY = Math.max(7, ...positions.map((position) => position.y))
+  const columns = Math.min(10, Math.max(8, maxX - minX + 1))
+  const rows = Math.min(10, Math.max(8, maxY - minY + 1))
+  const cell = 9
+  const pad = 12
+  const width = columns * cell + pad * 2
+  const height = rows * cell + pad * 2
+
+  return (
+    <div className="absolute bottom-3 right-3 rounded-md border border-sky-200 bg-sky-50/95 p-1 shadow-sm" aria-label="Repère de position sur la grille">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img">
+        {Array.from({ length: columns + 1 }, (_, index) => (
+          <line key={`v-${index}`} x1={pad + index * cell} y1={pad} x2={pad + index * cell} y2={pad + rows * cell} stroke="#94a3b8" strokeWidth=".55" />
+        ))}
+        {Array.from({ length: rows + 1 }, (_, index) => (
+          <line key={`h-${index}`} x1={pad} y1={pad + index * cell} x2={pad + columns * cell} y2={pad + index * cell} stroke="#94a3b8" strokeWidth=".55" />
+        ))}
+        {Array.from({ length: columns }, (_, index) => (
+          <text key={`x-${index}`} x={pad + index * cell + cell / 2} y={8} textAnchor="middle" fill="#64748b" fontSize="5.5" fontWeight="700">
+            {index + 1}
+          </text>
+        ))}
+        {Array.from({ length: rows }, (_, index) => (
+          <text key={`y-${index}`} x={6} y={pad + index * cell + cell * 0.7} textAnchor="middle" fill="#64748b" fontSize="5.5" fontWeight="700">
+            {String.fromCharCode(65 + index)}
+          </text>
+        ))}
+        {positions.map((position, index) => {
+          const x = Math.min(columns - 1, Math.max(0, position.x - minX))
+          const y = Math.min(rows - 1, Math.max(0, position.y - minY))
+          return (
+            <rect
+              key={`${position.pieceId}-${index}`}
+              x={pad + x * cell + 1.5}
+              y={pad + y * cell + 1.5}
+              width={cell - 3}
+              height={cell - 3}
+              rx="1.5"
+              fill={position.isCurrent ? '#f97316' : '#94a3b8'}
+              opacity={position.isCurrent ? 1 : 0.42}
+            />
+          )
+        })}
+      </svg>
+    </div>
+  )
 }
 
 export default function MarbleInstructionDiagram({ steps, currentStep }: Props) {
@@ -71,13 +122,13 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
     const maxRawX = Math.max(...points.map((point) => point.rawX))
     const minRawY = Math.min(...points.map((point) => point.rawY))
     const maxRawY = Math.max(...points.map((point) => point.baseRawY))
-    const spanX = Math.max(210, maxRawX - minRawX + 100)
-    const spanY = Math.max(250, maxRawY - minRawY + 130)
+    const spanX = Math.max(205, maxRawX - minRawX + 105)
+    const spanY = Math.max(235, maxRawY - minRawY + 125)
     const centerRawX = (minRawX + maxRawX) / 2
     const centerRawY = (minRawY + maxRawY) / 2
     const project = (rawX: number, rawY: number) => ({
-      left: 50 + ((rawX - centerRawX) / spanX) * 76 * zoom,
-      top: 52 + ((rawY - centerRawY) / spanY) * 68 * zoom,
+      left: 50 + ((rawX - centerRawX) / spanX) * 72 * zoom,
+      top: 50 + ((rawY - centerRawY) / spanY) * 67 * zoom,
     })
     return { points, project }
   }, [viewRotation, visible, zoom])
@@ -85,99 +136,57 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
   const ordered = [...scene.points].sort((first, second) =>
     (first.baseRawY + first.position.z * 0.25) - (second.baseRawY + second.position.z * 0.25),
   )
+  const currentPoints = scene.points.filter((point) => point.position.isCurrent)
+  const projectedCurrent = currentPoints.map((point) => scene.project(point.rawX, point.rawY))
+  const insertionArrow = projectedCurrent.length > 0 ? {
+    left: projectedCurrent.reduce((sum, point) => sum + point.left, 0) / projectedCurrent.length,
+    top: Math.max(5, Math.min(...projectedCurrent.map((point) => point.top)) - 16),
+  } : null
 
-  const minX = Math.min(...visible.map((position) => position.x))
-  const minY = Math.min(...visible.map((position) => position.y))
-  const maxX = Math.max(...visible.map((position) => position.x))
-  const maxY = Math.max(...visible.map((position) => position.y))
   const maxZ = Math.max(...visible.map((position) => position.z))
-  const planeWidth = Math.min(500, Math.max(290, (maxX - minX + 5) * 56 * zoom))
-  const planeHeight = Math.min(360, Math.max(220, (maxY - minY + 5) * 44 * zoom))
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-white" style={{ border: '2px solid #d8dce8' }}>
-      <div className="flex items-center justify-between gap-2 px-3 py-2" style={{ background: '#312e81' }}>
-        <div className="flex items-center gap-2 text-white">
-          <Layers3 size={17} />
-          <span className="text-xs font-extrabold uppercase tracking-wider">Assemblage 3D</span>
+    <div className="overflow-hidden rounded-xl bg-white" style={{ border: '1px solid #cbd5e1' }}>
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-800">Plan de montage</p>
+          <p className="text-xs font-bold text-slate-500">Couleur = pièces à poser maintenant</p>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setZoom((value) => Math.max(0.75, Number((value - 0.15).toFixed(2))))}
-            aria-label="Réduire la vue"
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-950/40 text-white"
-          >
-            <Minus size={16} />
+          <button type="button" onClick={() => setZoom((value) => Math.max(0.78, Number((value - 0.12).toFixed(2))))} aria-label="Réduire la vue" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-indigo-900">
+            <Minus size={15} />
           </button>
-          <button
-            type="button"
-            onClick={() => setViewRotation((value) => (value + 1) % 4)}
-            aria-label="Tourner la vue 3D"
-            className="flex h-8 items-center justify-center gap-1 rounded-lg bg-indigo-950/40 px-2 text-[11px] font-black text-white"
-          >
-            <RotateCw size={15} /> Tourner
+          <button type="button" onClick={() => setViewRotation((value) => (value + 1) % 4)} aria-label="Changer l’angle de vue" className="flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 text-[11px] font-extrabold text-indigo-900">
+            <RotateCw size={14} /> Angle
           </button>
-          <button
-            type="button"
-            onClick={() => setZoom((value) => Math.min(1.35, Number((value + 0.15).toFixed(2))))}
-            aria-label="Agrandir la vue"
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-950/40 text-white"
-          >
-            <Plus size={16} />
+          <button type="button" onClick={() => setZoom((value) => Math.min(1.28, Number((value + 0.12).toFixed(2))))} aria-label="Agrandir la vue" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-indigo-900">
+            <Plus size={15} />
           </button>
         </div>
       </div>
 
-      <div className="relative h-[390px] overflow-hidden sm:h-[470px]" style={{ background: 'radial-gradient(circle at 50% 40%, #ffffff 0%, #f4f7fb 58%, #e2e8f0 100%)' }}>
-        <div
-          className="absolute left-1/2 top-[64%]"
-          style={{
-            width: planeWidth,
-            height: planeHeight,
-            transform: `translate(-50%, -50%) rotateX(61deg) rotateZ(${45 + viewRotation * 90}deg)`,
-            backgroundColor: '#f8fafc',
-            backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-            border: '2px solid #94a3b8',
-            borderRadius: 16,
-            boxShadow: '18px 24px 34px rgba(15,23,42,.18)',
-          }}
-        />
-
+      <div className="relative h-[390px] overflow-hidden sm:h-[470px]" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #ffffff 84%, #f8fafc 100%)' }}>
         {ordered.map(({ position, rawX, rawY, baseRawY }, index) => {
           const point = scene.project(rawX, rawY)
           const basePoint = scene.project(rawX, baseRawY)
           const code = position.pieceCode ?? '?'
-          const size = Math.round(visualSize(code, position.isCurrent) * zoom)
-          const guideHeight = Math.max(0, basePoint.top - point.top)
+          const size = Math.round(visualSize(code) * zoom)
           return (
             <div key={`${position.pieceId}-${index}`}>
-              {position.z > 0 && (
-                <div
-                  className="absolute border-l-2 border-dashed border-indigo-300/70"
-                  style={{
-                    left: `${point.left}%`,
-                    top: `${point.top}%`,
-                    height: `${guideHeight}%`,
-                    zIndex: 5,
-                  }}
-                />
-              )}
               <div
-                className="absolute rounded-full bg-slate-700/20 blur-[2px]"
+                className="absolute rounded-full bg-slate-500/20 blur-[2px]"
                 style={{
                   left: `${basePoint.left}%`,
                   top: `${basePoint.top + 2}%`,
-                  width: Math.max(24, size * 0.72),
-                  height: Math.max(8, size * 0.16),
+                  width: Math.max(20, size * 0.58),
+                  height: Math.max(6, size * 0.1),
                   transform: 'translate(-50%, -50%)',
                   zIndex: 6,
-                  opacity: position.isCurrent ? 0.5 : 0.22,
+                  opacity: position.isCurrent ? 0.28 : 0.08,
                 }}
               />
               <div
-                className="absolute transition-all duration-500"
+                className="absolute transition-all duration-300"
                 style={{
                   left: `${point.left}%`,
                   top: `${point.top}%`,
@@ -185,51 +194,33 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
                   height: size,
                   transform: 'translate(-50%, -72%)',
                   zIndex: 20 + Math.round(basePoint.top * 2 + position.z),
-                  opacity: position.isCurrent ? 1 : 0.48,
-                  filter: position.isCurrent ? 'saturate(1.08)' : 'grayscale(.55) saturate(.55)',
+                  opacity: position.isCurrent ? 1 : 0.2,
+                  filter: position.isCurrent
+                    ? 'saturate(1.03) drop-shadow(0 4px 3px rgba(15,23,42,.2))'
+                    : 'grayscale(.2) saturate(.7)',
                 }}
               >
-                {position.isCurrent && (
-                  <div className="absolute -top-8 left-1/2 z-20 -translate-x-1/2 animate-bounce text-orange-500">
-                    <ArrowDown size={25} strokeWidth={3.5} />
-                  </div>
-                )}
-                <div
-                  className="relative flex h-full w-full items-center justify-center rounded-2xl"
-                  style={{
-                    outline: position.isCurrent ? '3px solid #f97316' : 'none',
-                    outlineOffset: position.isCurrent ? 2 : 0,
-                    background: position.isCurrent ? 'radial-gradient(circle, rgba(255,247,237,.88), rgba(255,255,255,.12) 72%)' : 'transparent',
-                    boxShadow: position.isCurrent ? '0 0 24px rgba(249,115,22,.32)' : 'none',
-                  }}
-                >
-                  <span style={{ display: 'block', transform: `rotate(${position.rotation ?? 0}deg)` }}>
-                    <PieceImage
-                      code={code}
-                      color={position.color}
-                      emoji={position.emoji}
-                      alt={position.pieceName ?? code}
-                      size={size}
-                      variant="cutout"
-                    />
-                  </span>
-                </div>
-                {position.isCurrent && (
-                  <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-black text-white shadow-lg">
-                    {code} · H{position.z}
-                  </span>
-                )}
+                <span className="flex h-full w-full items-center justify-center" style={{ transform: `rotate(${position.rotation ?? 0}deg)` }}>
+                  <PieceImage code={code} color={position.color} emoji={position.emoji} alt={position.pieceName ?? code} size={size} variant="cutout" />
+                </span>
               </div>
             </div>
           )
         })}
 
-        <div className="absolute bottom-2 left-2 rounded-lg bg-white/95 px-2 py-1 text-[10px] font-bold text-slate-600 shadow">
-          Atténué = monté · Orange = à ajouter
+        {insertionArrow && (
+          <div className="pointer-events-none absolute z-[999] flex -translate-x-1/2 flex-col items-center text-orange-500" style={{ left: `${insertionArrow.left}%`, top: `${insertionArrow.top}%` }} aria-hidden="true">
+            <span className="mb-0.5 rounded bg-white/90 px-1.5 text-[9px] font-black uppercase tracking-wide">Poser</span>
+            <ArrowDown size={32} strokeWidth={3.5} />
+          </div>
+        )}
+
+        <div className="absolute bottom-3 left-3 rounded-md border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm">
+          <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-slate-300 opacity-50" />Déjà monté
+          <span className="ml-3 mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-orange-500" />À poser
+          <span className="ml-3 text-indigo-700">H{maxZ + 1}</span>
         </div>
-        <div className="absolute bottom-2 right-2 rounded-lg bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700">
-          {maxZ + 1} niveaux · vue {viewRotation + 1}/4
-        </div>
+        <PositionMiniMap positions={visible} />
       </div>
     </div>
   )
