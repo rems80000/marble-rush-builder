@@ -2,12 +2,18 @@ import type { AppState } from '../types'
 import { SEED_SETS } from '../data/seedData'
 
 const STORAGE_KEY = 'marble_rush_builder_v2'
+const KID_UI_MIGRATION_KEY = 'marble_rush_kid_ui_v1'
 
 export function loadState(): AppState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const data = JSON.parse(raw) as AppState
+    // La nouvelle interface tablette démarre en thème clair une seule fois.
+    if (!localStorage.getItem(KID_UI_MIGRATION_KEY)) {
+      data.settings.theme = 'light'
+      localStorage.setItem(KID_UI_MIGRATION_KEY, 'done')
+    }
     // Migration: inject layouts if missing (added in Phase 4)
     if (!data.layouts) data.layouts = []
     // Migration collection 2026 : ajoute les sets photographiés sans écraser
@@ -93,7 +99,7 @@ export function getDefaultState(): AppState {
     history: [],
     layouts: [],
     settings: {
-      theme: 'dark',
+      theme: 'light',
       gridCols: 8,
       gridRows: 8,
     },

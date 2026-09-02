@@ -58,7 +58,7 @@ export default function StepByStepViewer({ steps, planName }: Props) {
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
               {step.pieces.map((piece, index) => (
                 <div key={`${piece.pieceCode}-${index}`} className="flex items-center gap-2 rounded-xl bg-slate-50 p-2 ring-1 ring-slate-200">
-                  <PieceImage code={piece.pieceCode ?? '?'} color={piece.color} emoji={piece.emoji} size={48} alt={piece.pieceName} />
+                  <PieceImage code={piece.pieceCode ?? '?'} color={piece.color} emoji={piece.emoji} size={48} alt={piece.pieceName} setReference={piece.setReference} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-black text-indigo-900">{piece.pieceCode ?? piece.pieceName}</p>
                     <p className="line-clamp-2 text-[11px] leading-tight text-slate-500">{piece.pieceName.replace(`${piece.pieceCode} - `, '')}</p>

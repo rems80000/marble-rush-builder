@@ -9,6 +9,9 @@ const base = import.meta.env.BASE_URL
 
 const CATALOG_5036 = `${base}reference/catalog-5036.jpg`
 const CATALOG_5999 = `${base}reference/catalog-5999.jpg`
+const CATALOG_5194 = `${base}reference/catalog-5194.png`
+const CATALOG_5423 = `${base}reference/catalog-5423.png`
+const CATALOG_5426 = `${base}reference/catalog-5426.png`
 
 type CellMap = Record<string, [number, number, number, number]>
 
@@ -87,9 +90,56 @@ const CROPS_5999 = definitions(CATALOG_5999, 'catalog-5999', {
   'MARBLE': [202, 898, 132, 116],
 })
 
+// Pages COMPOSANTS rendues depuis les guides officiels VTech.
+// Les cases gardent une petite marge afin de ne jamais couper la pièce.
+const CROPS_5194 = definitions(CATALOG_5194, 'catalog-5194', {
+  'M-04': [26, 52, 186, 220], 'M-05': [212, 52, 186, 220],
+  'M-07': [398, 52, 186, 220], 'M-15': [584, 52, 186, 220], 'M-17': [770, 52, 190, 220],
+  'M-18': [26, 272, 186, 220], 'T-01': [212, 272, 186, 220],
+  'T-02': [398, 272, 186, 220], 'T-03': [584, 272, 186, 220], 'T-04': [770, 272, 190, 220],
+  'T-05': [26, 492, 186, 220], 'T-06': [212, 492, 186, 220],
+  'T-07': [398, 492, 186, 220], 'T-08': [584, 492, 186, 220], 'T-14': [770, 492, 190, 220],
+  'T-15': [26, 712, 186, 220], 'T-17': [212, 712, 186, 220],
+  'T-18': [398, 712, 186, 220], 'T-20': [584, 712, 186, 220], 'B-01': [770, 712, 190, 220],
+  'B-02': [26, 932, 186, 220], 'B-04': [212, 932, 186, 220],
+  'B-05': [398, 932, 186, 220], 'P-01': [584, 932, 186, 220], 'P-02': [770, 932, 190, 220],
+  'MARBLE': [26, 1152, 186, 170],
+})
+
+const CROPS_5423 = definitions(CATALOG_5423, 'catalog-5423', {
+  'M-01': [30, 76, 188, 210], 'M-02': [218, 76, 188, 210],
+  'M-03': [406, 76, 188, 210], 'M-04': [594, 76, 188, 210], 'M-05': [782, 76, 188, 210],
+  'M-06': [30, 286, 188, 210], 'M-07': [218, 286, 188, 210],
+  'M-08': [406, 286, 188, 210], 'M-09': [594, 286, 188, 210], 'T-01': [782, 286, 188, 210],
+  'T-02': [30, 496, 188, 202], 'T-03': [218, 496, 188, 202],
+  'T-04': [406, 496, 188, 202], 'T-05': [594, 496, 188, 202], 'T-06': [782, 496, 188, 202],
+  'T-07': [30, 698, 188, 198], 'T-08': [218, 698, 188, 198],
+  'T-09': [406, 698, 188, 198], 'T-10': [594, 698, 188, 198], 'T-11': [782, 698, 188, 198],
+  'T-12': [30, 896, 188, 202], 'P-01': [218, 896, 188, 202],
+  'B-01': [406, 896, 188, 202], 'B-02': [594, 896, 188, 202], 'B-03': [782, 896, 188, 202],
+  'MARBLE': [30, 1098, 188, 178], 'M-15': [218, 1098, 188, 178],
+})
+
+const CROPS_5426 = definitions(CATALOG_5426, 'catalog-5426', {
+  'B-01': [24, 58, 160, 238], 'B-02': [184, 58, 160, 238],
+  'B-04': [344, 58, 160, 238], 'P-02': [504, 58, 160, 238],
+  'T-08': [24, 296, 160, 236], 'T-07': [184, 296, 160, 236],
+  'T-05': [344, 296, 160, 236], 'T-02': [504, 296, 160, 236],
+  'T-01': [24, 532, 160, 236], 'T-12': [184, 532, 160, 236],
+  'M-09': [344, 532, 160, 236], 'MARBLE': [504, 532, 160, 236],
+})
+
 export function getNoticeCrop(code: string, setReference?: string): NoticeCropDefinition | null {
   const normalized = code.toUpperCase()
   if (setReference === '5036') return CROPS_5036[normalized] ?? null
   if (setReference === '5999') return CROPS_5999[normalized] ?? null
-  return CROPS_5999[normalized] ?? CROPS_5036[normalized] ?? null
+  if (setReference === '5194') return CROPS_5194[normalized] ?? null
+  if (setReference === '5423') return CROPS_5423[normalized] ?? null
+  if (setReference === '5426') return CROPS_5426[normalized] ?? null
+  return CROPS_5999[normalized]
+    ?? CROPS_5036[normalized]
+    ?? CROPS_5423[normalized]
+    ?? CROPS_5194[normalized]
+    ?? CROPS_5426[normalized]
+    ?? null
 }

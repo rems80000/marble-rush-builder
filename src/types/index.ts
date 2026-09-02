@@ -124,6 +124,7 @@ export interface StepPieceUsage {
   quantity: number
   color: PieceColor
   emoji?: string
+  setReference?: string
 }
 
 export interface BuildStep {

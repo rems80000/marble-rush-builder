@@ -6,9 +6,9 @@ import { generateId } from '../utils/storage'
 import StepByStepViewer from '../components/StepByStepViewer'
 import ValidationPanel from '../components/ValidationPanel'
 import PieceImage from '../components/PieceImage'
-import MarbleInstructionDiagram from '../components/MarbleInstructionDiagram'
+import CircuitOverview from '../components/CircuitOverview'
 
-interface PieceRef { code: string; qty: number }
+interface PieceRef { code: string; qty: number; piece?: AvailablePiece }
 
 interface StepRecipe {
   title: string
@@ -63,8 +63,42 @@ function isFeaturePiece(piece: AvailablePiece) {
   if (piece.code.startsWith('B-') || piece.code.startsWith('P-') || piece.code === 'MARBLE') return false
   if (piece.type === 'rail-straight' || piece.type === 'rail-curved' || piece.type === 'train-track' || piece.type === 'connector') return false
   if (piece.type === 'decoration') return /pont/i.test(piece.name)
-  if (piece.type === 'special') return /tourbillon|bascule|module tournant|pont/i.test(piece.name)
+  if (piece.type === 'special') return /tourbillon|bascule|roue|tambour|grande tour|pont/i.test(piece.name)
   return ['spiral', 'elevator', 'launcher', 'train-car', 'funnel', 'flipper', 'cannon'].includes(piece.type)
+}
+
+function buildFeatureOptions(sets: ReturnType<typeof useStore>['state']['sets']) {
+  const result = new Map<string, AvailablePiece>()
+  sets.forEach((set) => set.pieces.forEach((piece) => {
+    const candidate: AvailablePiece = { ...piece, available: piece.quantity, setReference: set.reference }
+    if (!isFeaturePiece(candidate)) return
+    const signature = `${piece.code}|${piece.name}|${piece.type}|${piece.color}`
+    const existing = result.get(signature)
+    if (existing) {
+      existing.available += piece.quantity
+      existing.setReference += ` + ${set.reference}`
+    } else {
+      result.set(signature, candidate)
+    }
+  }))
+  return [...result.values()].sort((a, b) => featureLabel(a).localeCompare(featureLabel(b), 'fr'))
+}
+
+type FeatureCategory = 'all' | 'slides' | 'wheels' | 'swirls' | 'mechanics'
+
+const FEATURE_CATEGORIES: { id: FeatureCategory; label: string }[] = [
+  { id: 'all', label: '✨ Tout' },
+  { id: 'slides', label: '🛝 Toboggans' },
+  { id: 'wheels', label: '🎡 Roues' },
+  { id: 'swirls', label: '🌀 Tourbillons' },
+  { id: 'mechanics', label: '🚂 Mécaniques' },
+]
+
+function featureCategory(piece: AvailablePiece): Exclude<FeatureCategory, 'all'> {
+  if (/roue|tambour/i.test(piece.name)) return 'wheels'
+  if (/toboggan|goulotte|rampe/i.test(piece.name)) return 'slides'
+  if (piece.type === 'spiral' || piece.type === 'funnel' || /tourbillon|entonnoir|vortex|disque/i.test(piece.name)) return 'swirls'
+  return 'mechanics'
 }
 
 function featureLabel(piece: AvailablePiece) {
@@ -77,13 +111,13 @@ function requestId(code: string | undefined, stepIndex: number, quantityIndex: n
 }
 
 function featurePieces(feature: AvailablePiece): PieceRef[] {
-  if (feature.code === 'M-40') return [{ code: 'M-40', qty: 1 }, { code: 'M-45', qty: 1 }]
+  if (feature.code === 'M-40') return [{ code: 'M-40', qty: 1, piece: feature }, { code: 'M-45', qty: 1 }]
   if (feature.code === 'M-39') return [
     { code: 'T-24', qty: 2 },
     { code: 'T-25', qty: 1 },
-    { code: 'M-39', qty: 1 },
+    { code: 'M-39', qty: 1, piece: feature },
   ]
-  return [{ code: feature.code, qty: 1 }]
+  return [{ code: feature.code, qty: 1, piece: feature }]
 }
 
 function makeRecipe(
@@ -162,18 +196,20 @@ function makeRecipes(selectedFeatures: SelectedFeature[]) {
   ]
 }
 
-function buildGenerationInventory(fullInventory: Map<string, AvailablePiece>, quantities: Record<string, number>) {
+function buildGenerationInventory(fullInventory: Map<string, AvailablePiece>, selectedFeatures: SelectedFeature[]) {
   const result = new Map<string, AvailablePiece>()
+  const selectedByCode = new Map<string, number>()
+  selectedFeatures.forEach(({ piece, quantity }) => selectedByCode.set(piece.code, (selectedByCode.get(piece.code) ?? 0) + quantity))
   fullInventory.forEach((piece, code) => {
     if (code.startsWith('B-') || code.startsWith('P-')) {
       result.set(code, { ...piece, available: 999, automatic: true })
     } else if (isFeaturePiece(piece)) {
-      result.set(code, { ...piece, available: quantities[code] ?? 0 })
+      result.set(code, { ...piece, available: selectedByCode.get(code) ?? 0 })
     } else {
       result.set(code, { ...piece })
     }
   })
-  const elevatorQty = quantities['M-40'] ?? 0
+  const elevatorQty = selectedByCode.get('M-40') ?? 0
   const elevatorBase = result.get('M-45')
   if (elevatorBase && elevatorQty > 0) result.set('M-45', { ...elevatorBase, available: elevatorQty })
   return result
@@ -184,9 +220,10 @@ function resolvePlan(recipe: PlanRecipe, inventory: Map<string, AvailablePiece>,
   const missing = new Map<string, number>()
   const steps: BuildStep[] = recipe.steps.map((step, stepIndex) => {
     const pieces = step.pieces.map((request) => {
-      const piece = inventory.get(request.code)
+      const stockPiece = inventory.get(request.code)
+      const piece = request.piece ?? stockPiece
       const previous = used.get(request.code) ?? 0
-      const available = piece?.available ?? 0
+      const available = stockPiece?.available ?? 0
       used.set(request.code, previous + request.qty)
       if (previous + request.qty > available) missing.set(request.code, previous + request.qty - available)
       return {
@@ -196,6 +233,7 @@ function resolvePlan(recipe: PlanRecipe, inventory: Map<string, AvailablePiece>,
         quantity: request.qty,
         color: (piece?.color ?? 'gray') as PieceColor,
         emoji: piece?.emoji,
+        setReference: piece?.setReference,
       }
     })
 
@@ -242,7 +280,7 @@ function PlanCard({ plan, inventory, onView, onSave, saved }: { plan: CircuitPla
   const usage = new Map<string, number>()
   plan.steps.flatMap((step) => step.pieces).forEach((piece) => usage.set(piece.pieceCode ?? '', (usage.get(piece.pieceCode ?? '') ?? 0) + piece.quantity))
   return <article className="card overflow-hidden">
-    <MarbleInstructionDiagram steps={plan.steps} currentStep={plan.steps.length - 1} finalPreview compact />
+    <CircuitOverview steps={plan.steps} compact />
     <div className="p-4">
       <div className="flex items-start gap-3"><span className={`flex h-11 w-11 items-center justify-center rounded-xl ${valid ? 'bg-emerald-500' : 'bg-amber-500'} text-lg font-black text-white`}>{plan.validationResult?.score}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-black" style={{ color: 'var(--text-primary)' }}>{plan.name}</h2><span className={`rounded-full px-2 py-1 text-[11px] font-black ${valid ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>{valid ? 'Constructible' : 'Pièces manquantes'}</span></div><p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{plan.notes}</p><p className="mt-2 text-xs font-bold text-violet-300">{plan.steps.length} étapes · environ {plan.estimatedTime} min · hauteur {plan.maxHeight}</p></div></div>
       {plan.validationResult && !valid && <div className="mt-3"><ValidationPanel result={plan.validationResult} /></div>}
@@ -258,54 +296,61 @@ export default function Generator() {
   const verifiedSets = useMemo(() => state.sets.filter((set) => set.owned && set.inventoryStatus === 'verified-photo' && set.pieces.length > 0), [state.sets])
   const verifiedSetIds = useMemo(() => verifiedSets.map((set) => set.id), [verifiedSets])
   const fullInventory = useMemo(() => buildInventory(state.sets, verifiedSetIds), [state.sets, verifiedSetIds])
-  const featureOptions = useMemo(() => [...fullInventory.values()].filter(isFeaturePiece).sort((a, b) => a.code.localeCompare(b.code)), [fullInventory])
+  const featureOptions = useMemo(() => buildFeatureOptions(verifiedSets), [verifiedSets])
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [generated, setGenerated] = useState(false)
   const [viewing, setViewing] = useState<CircuitPlan | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const selectedFeatures = useMemo(() => featureOptions.map((piece) => ({ piece, quantity: quantities[piece.code] ?? 0 })).filter((item) => item.quantity > 0), [featureOptions, quantities])
-  const inventory = useMemo(() => buildGenerationInventory(fullInventory, quantities), [fullInventory, quantities])
+  const [category, setCategory] = useState<FeatureCategory>('all')
+  const visibleFeatures = useMemo(() => featureOptions.filter((piece) => category === 'all' || featureCategory(piece) === category), [category, featureOptions])
+  const selectedFeatures = useMemo(() => featureOptions.map((piece) => ({ piece, quantity: quantities[piece.id] ?? 0 })).filter((item) => item.quantity > 0), [featureOptions, quantities])
+  const inventory = useMemo(() => buildGenerationInventory(fullInventory, selectedFeatures), [fullInventory, selectedFeatures])
   const recipes = useMemo(() => makeRecipes(selectedFeatures), [selectedFeatures])
   const plans = useMemo(() => recipes.map((recipe) => resolvePlan(recipe, inventory, verifiedSetIds)).sort((a, b) => Number(b.validationResult?.isValid) - Number(a.validationResult?.isValid)), [inventory, recipes, verifiedSetIds])
   const previewPlan = plans[Math.min(2, Math.max(0, selectedFeatures.reduce((sum, item) => sum + item.quantity, 0) - 1))] ?? plans[0]
   const selectedCount = selectedFeatures.reduce((sum, item) => sum + item.quantity, 0)
 
   function changeQuantity(piece: AvailablePiece, delta: number) {
-    setQuantities((current) => ({ ...current, [piece.code]: Math.max(0, Math.min(piece.available, (current[piece.code] ?? 0) + delta)) }))
+    setQuantities((current) => ({ ...current, [piece.id]: Math.max(0, Math.min(piece.available, (current[piece.id] ?? 0) + delta)) }))
   }
 
   if (viewing) return <div className="mx-auto max-w-5xl px-4 pb-24 pt-4"><button onClick={() => setViewing(null)} className="mb-4 flex min-h-11 items-center gap-2 text-sm font-bold" style={{ color: 'var(--text-secondary)' }}><ArrowLeft size={18} /> Les propositions</button><StepByStepViewer steps={viewing.steps} planName={viewing.name} /></div>
-  if (generated) return <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 pb-24 pt-5"><div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Parcours proposés</h1><p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>Chaque aperçu montre le circuit terminé avec les attractions choisies.</p></div><button onClick={() => setGenerated(false)} className="min-h-11 rounded-xl px-3 text-sm font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Modifier</button></div>{plans.map((plan) => <PlanCard key={plan.id} plan={plan} inventory={inventory} onView={() => setViewing(plan)} saved={savedIds.has(plan.id)} onSave={() => { dispatch({ type: 'ADD_PLAN', plan }); setSavedIds((current) => new Set(current).add(plan.id)) }} />)}</div>
+  if (generated) return <div className="mx-auto flex max-w-4xl flex-col gap-5 px-4 pb-24 pt-5"><div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Choisis ton parcours</h1><p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>La ligne bleue montre le chemin suivi par la bille.</p></div><button onClick={() => setGenerated(false)} className="min-h-12 rounded-2xl bg-white px-4 text-sm font-black text-slate-800 shadow">Changer mes pièces</button></div>{plans.map((plan) => <PlanCard key={plan.id} plan={plan} inventory={inventory} onView={() => setViewing(plan)} saved={savedIds.has(plan.id)} onSave={() => { dispatch({ type: 'ADD_PLAN', plan }); setSavedIds((current) => new Set(current).add(plan.id)) }} />)}</div>
 
   return <div className="mx-auto flex max-w-4xl flex-col gap-5 px-4 pb-24 pt-5">
-    <div><p className="text-xs font-black uppercase tracking-widest text-orange-400">Créer</p><h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Choisis tes attractions</h1><p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>Sélectionne seulement les grandes pièces que tu veux utiliser. Les plaques, petits blocs et supports sont ajoutés automatiquement.</p></div>
+    <div><h1 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>Que veux-tu dans ton circuit&nbsp;?</h1><p className="mt-2 max-w-2xl text-base font-semibold" style={{ color: 'var(--text-secondary)' }}>Appuie sur les grandes pièces. Nous ajouterons les petits blocs automatiquement.</p></div>
 
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>1. Grandes pièces disponibles</h2><button type="button" onClick={() => setQuantities({})} className="min-h-10 rounded-xl px-3 text-xs font-bold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>Tout retirer</button></div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {featureOptions.map((piece) => {
-            const quantity = quantities[piece.code] ?? 0
-            return <article key={piece.code} className="relative overflow-hidden rounded-2xl p-3" style={{ background: quantity > 0 ? 'rgba(249,115,22,.12)' : 'var(--bg-secondary)', border: `2px solid ${quantity > 0 ? '#f97316' : 'var(--border)'}` }}>
-              <div className="flex justify-center"><PieceImage code={piece.code} color={piece.color} emoji={piece.emoji} size={82} setReference={piece.setReference.split(' + ')[0]} /></div>
-              <p className="mt-1 text-center text-sm font-black" style={{ color: 'var(--text-primary)' }}>{piece.code}</p>
-              <p className="min-h-8 text-center text-[11px] leading-tight" style={{ color: 'var(--text-secondary)' }}>{featureLabel(piece)}</p>
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <button type="button" onClick={() => changeQuantity(piece, -1)} disabled={quantity === 0} aria-label={`Retirer ${piece.code}`} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 disabled:opacity-30"><Minus size={18} /></button>
-                <span className="min-w-8 text-center text-xl font-black text-orange-400">{quantity}</span>
-                <button type="button" onClick={() => changeQuantity(piece, 1)} disabled={quantity >= piece.available} aria-label={`Ajouter ${piece.code}`} className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white disabled:opacity-30"><Plus size={18} /></button>
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
+          {FEATURE_CATEGORIES.map((item) => <button key={item.id} type="button" onClick={() => setCategory(item.id)} className={`min-h-12 shrink-0 rounded-2xl px-4 text-sm font-black shadow-sm ${category === item.id ? 'bg-orange-500 text-white' : 'bg-white text-slate-700'}`}>{item.label}</button>)}
+        </div>
+        <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Les grandes pièces</h2>{selectedCount > 0 && <button type="button" onClick={() => setQuantities({})} className="min-h-11 rounded-2xl bg-white px-4 text-sm font-black text-slate-700 shadow">Recommencer</button>}</div>
+        <div className="grid grid-cols-2 gap-4">
+          {visibleFeatures.map((piece) => {
+            const quantity = quantities[piece.id] ?? 0
+            return <article key={piece.id} className={`relative overflow-hidden rounded-3xl bg-white p-3 text-slate-900 shadow-md transition ${quantity > 0 ? 'ring-4 ring-orange-400' : 'ring-1 ring-slate-200'}`}>
+              <span className="absolute right-2 top-2 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-500">{piece.code}</span>
+              <button type="button" onClick={() => changeQuantity(piece, quantity > 0 ? -quantity : 1)} className="flex min-h-40 w-full flex-col items-center justify-center" aria-label={`${quantity > 0 ? 'Retirer' : 'Ajouter'} ${featureLabel(piece)}`}>
+                <PieceImage code={piece.code} color={piece.color} emoji={piece.emoji} size={108} setReference={piece.setReference.split(' + ')[0]} variant="cutout" />
+                <span className="mt-2 text-center text-base font-black leading-tight">{featureLabel(piece)}</span>
+              </button>
+              <div className="mt-3 flex items-center justify-center gap-3">
+                <button type="button" onClick={() => changeQuantity(piece, -1)} disabled={quantity === 0} aria-label={`Retirer ${piece.code}`} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-800 disabled:opacity-30"><Minus size={22} /></button>
+                <span className="min-w-9 text-center text-2xl font-black text-orange-500">{quantity}</span>
+                <button type="button" onClick={() => changeQuantity(piece, 1)} disabled={quantity >= piece.available} aria-label={`Ajouter ${piece.code}`} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-white disabled:opacity-30"><Plus size={22} /></button>
               </div>
-              <p className="mt-1 text-center text-[10px]" style={{ color: 'var(--text-secondary)' }}>maximum {piece.available}</p>
+              <p className="mt-2 text-center text-xs font-bold text-slate-500">Tu en as {piece.available}</p>
             </article>
           })}
         </div>
       </section>
 
       <aside className="lg:sticky lg:top-4 lg:self-start">
-        <h2 className="mb-2 text-sm font-black" style={{ color: 'var(--text-primary)' }}>2. Aperçu en direct</h2>
-        {selectedCount > 0 && previewPlan ? <MarbleInstructionDiagram steps={previewPlan.steps} currentStep={previewPlan.steps.length - 1} finalPreview compact /> : <div className="flex min-h-60 flex-col items-center justify-center rounded-2xl p-6 text-center" style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border)' }}><Sparkles className="mb-3 text-orange-400" size={34} /><p className="font-black" style={{ color: 'var(--text-primary)' }}>Choisis une grande pièce</p><p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>Le circuit final apparaîtra ici et évoluera à chaque choix.</p></div>}
-        <div className="mt-3 rounded-2xl p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}><div className="flex items-center justify-between"><div><p className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{selectedCount} attraction{selectedCount > 1 ? 's' : ''} choisie{selectedCount > 1 ? 's' : ''}</p><p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>Blocs B et plaques P : toujours disponibles</p></div><PackageCheck className="text-emerald-400" size={27} /></div></div>
-        <button disabled={selectedCount === 0} onClick={() => { setGenerated(true); setSavedIds(new Set()) }} className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 px-3 text-base font-black text-white shadow-lg disabled:opacity-40"><Sparkles size={22} /> Générer 3 parcours</button>
+        <h2 className="mb-3 text-lg font-black" style={{ color: 'var(--text-primary)' }}>Ton choix</h2>
+        {previewPlan && <CircuitOverview steps={selectedCount > 0 ? previewPlan.steps : []} compact />}
+        <div className="mt-3 rounded-2xl bg-white p-4 text-slate-800 shadow"><div className="flex items-center justify-between"><div><p className="text-base font-black">{selectedCount} grande{selectedCount > 1 ? 's' : ''} pièce{selectedCount > 1 ? 's' : ''}</p><p className="mt-1 text-xs font-bold text-slate-500">Les petits supports seront ajoutés tout seuls.</p></div><PackageCheck className="text-emerald-500" size={29} /></div></div>
+        <button disabled={selectedCount === 0} onClick={() => { setGenerated(true); setSavedIds(new Set()) }} className="mt-3 flex min-h-16 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-3 text-lg font-black text-white shadow-lg disabled:opacity-40"><Sparkles size={24} /> Fabriquer mon circuit</button>
       </aside>
     </div>
   </div>
