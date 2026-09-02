@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marble Rush Builder</title>
+    <script>
+      var base = '/marble-rush-builder/'
+      var route = location.pathname.indexOf(base) === 0
+        ? '/' + location.pathname.slice(base.length)
+        : '/'
+      location.replace(base + '#' + route + location.search)
+    </script>
+  </head>
+  <body></body>
+</html>
