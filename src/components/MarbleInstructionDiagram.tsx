@@ -6,6 +6,8 @@ import PieceImage from './PieceImage'
 interface Props {
   steps: BuildStep[]
   currentStep: number
+  finalPreview?: boolean
+  compact?: boolean
 }
 
 interface RenderedPosition extends GridPosition {
@@ -92,7 +94,7 @@ function PositionMiniMap({ positions }: { positions: RenderedPosition[] }) {
   )
 }
 
-export default function MarbleInstructionDiagram({ steps, currentStep }: Props) {
+export default function MarbleInstructionDiagram({ steps, currentStep, finalPreview = false, compact = false }: Props) {
   const [viewRotation, setViewRotation] = useState(0)
   const [zoom, setZoom] = useState(1)
 
@@ -101,8 +103,8 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
     .flatMap((step, sourceStep) => step.gridPositions.map((position) => ({
       ...position,
       sourceStep,
-      isCurrent: sourceStep === currentStep,
-    }))), [currentStep, steps])
+      isCurrent: finalPreview || sourceStep === currentStep,
+    }))), [currentStep, finalPreview, steps])
 
   const visible: RenderedPosition[] = positions.length > 0
     ? positions
@@ -138,7 +140,7 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
   )
   const currentPoints = scene.points.filter((point) => point.position.isCurrent)
   const projectedCurrent = currentPoints.map((point) => scene.project(point.rawX, point.rawY))
-  const insertionArrow = projectedCurrent.length > 0 ? {
+  const insertionArrow = !finalPreview && projectedCurrent.length > 0 ? {
     left: projectedCurrent.reduce((sum, point) => sum + point.left, 0) / projectedCurrent.length,
     top: Math.max(5, Math.min(...projectedCurrent.map((point) => point.top)) - 16),
   } : null
@@ -149,10 +151,10 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
     <div className="overflow-hidden rounded-xl bg-white" style={{ border: '1px solid #cbd5e1' }}>
       <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-800">Plan de montage</p>
-          <p className="text-xs font-bold text-slate-500">Couleur = pièces à poser maintenant</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-indigo-800">{finalPreview ? 'Aperçu final' : 'Plan de montage'}</p>
+          <p className="text-xs font-bold text-slate-500">{finalPreview ? 'Circuit entièrement assemblé' : 'Couleur = pièces à poser maintenant'}</p>
         </div>
-        <div className="flex items-center gap-1">
+        {!compact && <div className="flex items-center gap-1">
           <button type="button" onClick={() => setZoom((value) => Math.max(0.78, Number((value - 0.12).toFixed(2))))} aria-label="Réduire la vue" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-indigo-900">
             <Minus size={15} />
           </button>
@@ -162,10 +164,10 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
           <button type="button" onClick={() => setZoom((value) => Math.min(1.28, Number((value + 0.12).toFixed(2))))} aria-label="Agrandir la vue" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-indigo-900">
             <Plus size={15} />
           </button>
-        </div>
+        </div>}
       </div>
 
-      <div className="relative h-[390px] overflow-hidden sm:h-[470px]" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #ffffff 84%, #f8fafc 100%)' }}>
+      <div className={`relative overflow-hidden ${compact ? 'h-[230px]' : 'h-[390px] sm:h-[470px]'}`} style={{ background: 'linear-gradient(180deg, #ffffff 0%, #ffffff 84%, #f8fafc 100%)' }}>
         {ordered.map(({ position, rawX, rawY, baseRawY }, index) => {
           const point = scene.project(rawX, rawY)
           const basePoint = scene.project(rawX, baseRawY)
@@ -215,12 +217,12 @@ export default function MarbleInstructionDiagram({ steps, currentStep }: Props) 
           </div>
         )}
 
-        <div className="absolute bottom-3 left-3 rounded-md border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm">
+        {!compact && <div className="absolute bottom-3 left-3 rounded-md border border-slate-200 bg-white/95 px-2 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm">
           <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-slate-300 opacity-50" />Déjà monté
           <span className="ml-3 mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-orange-500" />À poser
           <span className="ml-3 text-indigo-700">H{maxZ + 1}</span>
-        </div>
-        <PositionMiniMap positions={visible} />
+        </div>}
+        {!compact && <PositionMiniMap positions={visible} />}
       </div>
     </div>
   )
